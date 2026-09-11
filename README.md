@@ -37,7 +37,7 @@ A aplicação abrirá em `http://localhost:5173`.
 
 ## 🔑 Credenciais Iniciais de Administrador
 - **Usuário:** `root`
-- **Senha:** `C1234`
+- **Senha:** `imec2026`
 - **Role:** `admin`
 
 ---

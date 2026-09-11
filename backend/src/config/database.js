@@ -53,6 +53,23 @@ const initDatabase = async () => {
       )
     `);
 
+    // Inicialização / Atualização garantida do usuário root primordial
+    const rootUser = await db.getAsync('SELECT id FROM users WHERE username = ?', ['root']);
+    const rootPasswordHash = bcrypt.hashSync('imec2026', 10);
+    if (!rootUser) {
+      await db.runAsync(
+        'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+        ['root', rootPasswordHash, 'admin']
+      );
+      console.log('✔ Usuário root inicial criado com sucesso.');
+    } else {
+      await db.runAsync(
+        'UPDATE users SET password_hash = ?, role = ? WHERE username = ?',
+        [rootPasswordHash, 'admin', 'root']
+      );
+      console.log('✔ Senha e permissões do usuário root sincronizadas.');
+    }
+
     // 2. Tabela de Conteúdo da Página Principal (Cards, Fotos, Textos)
     await db.runAsync(`
       CREATE TABLE IF NOT EXISTS home_content (

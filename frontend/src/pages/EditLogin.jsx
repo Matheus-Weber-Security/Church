@@ -28,12 +28,6 @@ export const EditLogin = ({ onBackHome }) => {
     }
   };
 
-  const fillDefaultCredentials = () => {
-    setUsername('root');
-    setPassword('C1234');
-    setError('');
-  };
-
   return (
     <div className="login-container">
       {/* Quadrado cinza central */}
@@ -72,7 +66,7 @@ export const EditLogin = ({ onBackHome }) => {
                 id="input-username"
                 type="text"
                 className="form-input"
-                placeholder="Ex: root"
+                placeholder="Digite seu usuário"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
@@ -112,30 +106,6 @@ export const EditLogin = ({ onBackHome }) => {
             )}
           </button>
         </form>
-
-        {/* Dica de Acesso com as credenciais root / C1234 */}
-        <div className="credentials-tip">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>Acesso Inicial Root:</span>
-            <button
-              type="button"
-              onClick={fillDefaultCredentials}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#60a5fa',
-                cursor: 'pointer',
-                fontSize: '0.78rem',
-                textDecoration: 'underline'
-              }}
-            >
-              Preencher automático
-            </button>
-          </div>
-          <div style={{ marginTop: '0.25rem', fontFamily: 'monospace', fontSize: '0.82rem' }}>
-            Usuário: <strong>root</strong> | Senha: <strong>C1234</strong>
-          </div>
-        </div>
 
         {onBackHome && (
           <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>

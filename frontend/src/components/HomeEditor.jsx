@@ -1,0 +1,823 @@
+import React, { useEffect, useRef, useState } from 'react';
+import grapesjs from 'grapesjs';
+import 'grapesjs/dist/css/grapes.min.css';
+import gjsPresetWebpage from 'grapesjs-preset-webpage';
+import gjsBlocksBasic from 'grapesjs-blocks-basic';
+import gjsForms from 'grapesjs-plugin-forms';
+import gjsCustomCode from 'grapesjs-custom-code';
+import gjsStyleBg from 'grapesjs-style-bg';
+import gjsCountdown from 'grapesjs-component-countdown';
+import gjsTabs from 'grapesjs-tabs';
+import gjsTooltip from 'grapesjs-tooltip';
+import gjsCkeditor from 'grapesjs-plugin-ckeditor';
+import { api, getAuthToken } from '../api/client';
+import {
+  Save,
+  Monitor,
+  Tablet,
+  Smartphone,
+  Undo2,
+  Redo2,
+  Trash2,
+  Code2,
+  CheckCircle2,
+  AlertCircle,
+  Plus,
+  FolderOpen,
+  FileText,
+  Image as ImageIcon,
+  Sparkles,
+  Layers,
+  X
+} from 'lucide-react';
+
+export const HomeEditor = () => {
+  const editorRef = useRef(null);
+  const containerRef = useRef(null);
+  const [editorInstance, setEditorInstance] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null);
+  const [activeDevice, setActiveDevice] = useState('desktop');
+
+  // Gerenciamento de Múltiplas Páginas
+  const [pages, setPages] = useState([{ slug: 'home', title: 'Home' }]);
+  const [currentPage, setCurrentPage] = useState('home');
+  const [isNewPageModalOpen, setIsNewPageModalOpen] = useState(false);
+  const [newPageData, setNewPageData] = useState({ title: '', slug: '' });
+
+  // Carrega lista de páginas
+  const loadPagesList = async () => {
+    try {
+      const data = await api.getPages();
+      if (data && data.pages && data.pages.length > 0) {
+        setPages(data.pages);
+      }
+    } catch (err) {
+      console.warn('Erro ao listar páginas:', err.message);
+    }
+  };
+
+  // Carrega conteúdo de uma página específica no editor
+  const loadPageContent = async (editor, slug) => {
+    if (!editor) return;
+    try {
+      const data = await api.getPage(slug);
+      if (data && data.project_data) {
+        try {
+          const projectData = JSON.parse(data.project_data);
+          editor.loadProjectData(projectData);
+          return;
+        } catch (e) {
+          // fallback para html/css se json falhar
+        }
+      }
+
+      if (data && data.html) {
+        editor.setComponents(data.html);
+        if (data.css) editor.setStyle(data.css);
+      } else {
+        editor.setComponents('');
+        editor.setStyle('');
+      }
+    } catch (err) {
+      console.warn(`Página ${slug} sem conteúdo prévio:`, err.message);
+      editor.setComponents('');
+      editor.setStyle('');
+    }
+  };
+
+  // Carrega imagens já enviadas para o Asset Manager
+  const loadExistingAssets = async (editor) => {
+    if (!editor) return;
+    try {
+      const res = await api.getAssets();
+      if (res && res.data && Array.isArray(res.data)) {
+        editor.AssetManager.add(res.data);
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar galeria de fotos:', err.message);
+    }
+  };
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    let editor = null;
+
+    const setupEditor = async () => {
+      // 1. Consulta plugins ativos no SQLite
+      let activePluginsList = [];
+      const builtInMap = {
+        'grapesjs-preset-webpage': gjsPresetWebpage,
+        'grapesjs-blocks-basic': gjsBlocksBasic,
+        'grapesjs-plugin-forms': gjsForms,
+        'grapesjs-custom-code': gjsCustomCode,
+        'grapesjs-style-bg': gjsStyleBg,
+        'grapesjs-component-countdown': gjsCountdown,
+        'grapesjs-tabs': gjsTabs,
+        'grapesjs-tooltip': gjsTooltip,
+        'grapesjs-plugin-ckeditor': gjsCkeditor
+      };
+
+      try {
+        const pluginsRes = await api.getPlugins();
+        const enabled = (pluginsRes.plugins || []).filter((p) => p.is_enabled === 1);
+        enabled.forEach((p) => {
+          if (builtInMap[p.package_name]) {
+            activePluginsList.push(builtInMap[p.package_name]);
+          } else if (p.cdn_url) {
+            activePluginsList.push(p.package_name);
+          }
+        });
+      } catch (e) {
+        activePluginsList = Object.values(builtInMap);
+      }
+
+      if (activePluginsList.length === 0) {
+        activePluginsList.push(gjsPresetWebpage);
+      }
+
+      // 2. Inicialização do GrapesJS Studio com os plugins ativos
+      const token = getAuthToken();
+      editor = grapesjs.init({
+        container: containerRef.current,
+        height: '100%',
+        width: 'auto',
+        storageManager: false,
+        plugins: activePluginsList,
+        pluginsOpts: {
+          gjsPresetWebpage: {
+            modalImportTitle: 'Importar Código HTML / CSS',
+            modalImportButton: 'Carregar',
+            modalImportLabel: '<div style="margin-bottom: 8px; font-size: 13px;">Cole ou edite seu HTML/CSS abaixo:</div>'
+          },
+          'grapesjs-blocks-basic': {
+            flexGrid: true
+          },
+          'grapesjs-plugin-forms': {
+            blocks: ['form', 'input', 'textarea', 'select', 'checkbox', 'radio', 'button', 'label']
+          },
+          'grapesjs-custom-code': {
+            blockCustomCode: { label: 'Código Customizado (HTML/JS)' },
+            modalTitle: 'Inserir Código Customizado'
+          },
+          'grapesjs-style-bg': {},
+          'grapesjs-component-countdown': {
+            blockCountdown: { label: 'Cronômetro Regressivo' }
+          },
+          'grapesjs-tabs': {},
+          'grapesjs-tooltip': {},
+          'grapesjs-plugin-ckeditor': {
+            position: 'left',
+            options: {
+              language: 'pt-br',
+              uiColor: '#242432',
+              toolbar: [
+                { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', '-', 'RemoveFormat'] },
+                { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Blockquote', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'] },
+                { name: 'links', items: ['Link', 'Unlink'] },
+                { name: 'styles', items: ['Format', 'Font', 'FontSize'] },
+                { name: 'colors', items: ['TextColor', 'BGColor'] }
+              ]
+            }
+          }
+        },
+      assetManager: {
+        upload: '/api/uploads',
+        uploadName: 'files',
+        multiUpload: true,
+        autoAdd: 1,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        modalTitle: 'Galeria de Imagens e Upload'
+      },
+      deviceManager: {
+        devices: [
+          { id: 'desktop', name: 'Desktop', width: '' },
+          { id: 'tablet', name: 'Tablet', width: '768px', widthMedia: '768px' },
+          { id: 'mobile', name: 'Mobile', width: '375px', widthMedia: '375px' }
+        ]
+      },
+      canvas: {
+        styles: [
+          'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap'
+        ]
+      }
+    });
+
+    // Registra blocos customizados
+    const blockManager = editor.BlockManager;
+
+    // 1. Menu / Navbar
+    blockManager.add('church-navbar', {
+      label: `
+        <div style="text-align: center;">
+          <svg style="width:28px;height:28px;margin:0 auto 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+          <div style="font-size:11px;font-weight:600;">Menu / Navbar</div>
+        </div>
+      `,
+      category: 'Estrutura & Menus',
+      content: `
+        <header style="background-color: #09090b; border-bottom: 1px solid #27272a; padding: 1.2rem 2rem; font-family: 'Inter', sans-serif;">
+          <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <a href="/" style="color: #ffffff; text-decoration: none; font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.5rem;">
+              <span style="background: #3b82f6; width: 10px; height: 10px; border-radius: 50%; display: inline-block;"></span>
+              CHURCH
+            </a>
+            <nav style="display: flex; align-items: center; gap: 1.75rem; flex-wrap: wrap;">
+              <a href="/" style="color: #ffffff; text-decoration: none; font-size: 0.95rem; font-weight: 500;">Home</a>
+              <a href="/sobre" style="color: #a1a1aa; text-decoration: none; font-size: 0.95rem; font-weight: 500;">Sobre Nós</a>
+              <a href="/cultos" style="color: #a1a1aa; text-decoration: none; font-size: 0.95rem; font-weight: 500;">Cultos & Horários</a>
+              <a href="/contato" style="color: #a1a1aa; text-decoration: none; font-size: 0.95rem; font-weight: 500;">Contato</a>
+            </nav>
+            <a href="#aovivo" style="background-color: #ffffff; color: #09090b; padding: 0.55rem 1.25rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9rem;">
+              Assista Ao Vivo
+            </a>
+          </div>
+        </header>
+      `
+    });
+
+    // 2. Botão com Link
+    blockManager.add('church-button', {
+      label: `
+        <div style="text-align: center;">
+          <svg style="width:28px;height:28px;margin:0 auto 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="10" rx="3"/><path d="M12 11h.01"/></svg>
+          <div style="font-size:11px;font-weight:600;">Botão com Link</div>
+        </div>
+      `,
+      category: 'Elementos Básicos',
+      content: {
+        type: 'link',
+        content: 'Clique Aqui para Acessar',
+        attributes: {
+          href: 'https://google.com',
+          target: '_blank'
+        },
+        style: {
+          display: 'inline-block',
+          'background-color': '#3b82f6',
+          color: '#ffffff',
+          padding: '12px 28px',
+          'border-radius': '8px',
+          'text-decoration': 'none',
+          'font-weight': '600',
+          'font-size': '16px',
+          'font-family': 'Inter, sans-serif',
+          'text-align': 'center'
+        }
+      }
+    });
+
+    // 3. Hero Banner
+    blockManager.add('church-hero', {
+      label: `
+        <div style="text-align: center;">
+          <svg style="width:28px;height:28px;margin:0 auto 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <div style="font-size:11px;font-weight:600;">Hero Banner</div>
+        </div>
+      `,
+      category: 'Seções Prontas',
+      content: `
+        <section style="padding: 5rem 2rem; background: linear-gradient(180deg, #09090b 0%, #18181b 100%); color: #ffffff; text-align: center; font-family: 'Inter', sans-serif;">
+          <div style="max-width: 800px; margin: 0 auto;">
+            <span style="display: inline-block; padding: 0.35rem 1rem; border-radius: 9999px; background-color: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin-bottom: 1.5rem;">
+              Bem-vindo à Nossa Família
+            </span>
+            <h1 style="font-size: 3rem; font-weight: 800; line-height: 1.15; margin-bottom: 1.25rem;">
+              Um lugar de fé, comunhão e transformação
+            </h1>
+            <p style="font-size: 1.2rem; color: #a1a1aa; line-height: 1.6; margin-bottom: 2.25rem;">
+              Junte-se a nós em nossos cultos presenciais e online. Venha viver momentos inesquecíveis na presença de Deus.
+            </p>
+            <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+              <a href="/cultos" style="background-color: #ffffff; color: #09090b; padding: 0.85rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Horários dos Cultos
+              </a>
+              <a href="#aovivo" style="background-color: #27272a; color: #ffffff; padding: 0.85rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Assistir Online
+              </a>
+            </div>
+          </div>
+        </section>
+      `
+    });
+
+    // 4. Cards de Ministérios
+    blockManager.add('church-cards-grid', {
+      label: `
+        <div style="text-align: center;">
+          <svg style="width:28px;height:28px;margin:0 auto 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <div style="font-size:11px;font-weight:600;">Grade de Cards</div>
+        </div>
+      `,
+      category: 'Seções Prontas',
+      content: `
+        <section style="padding: 4.5rem 2rem; background-color: #0c0c0e; font-family: 'Inter', sans-serif;">
+          <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 3.5rem;">
+              <h2 style="font-size: 2.25rem; font-weight: 700; color: #ffffff; margin-bottom: 0.75rem;">Nossos Ministérios</h2>
+              <p style="color: #a1a1aa; font-size: 1.1rem;">Descubra onde você e sua família podem se conectar</p>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">
+              <div style="background-color: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 2rem; display: flex; flex-direction: column;">
+                <h3 style="color: #ffffff; font-size: 1.35rem; font-weight: 600; margin-bottom: 0.75rem;">Ministério Infantil</h3>
+                <p style="color: #a1a1aa; line-height: 1.6; margin-bottom: 1.5rem; flex: 1;">Atividades lúdicas e bíblicas para crianças de todas as idades durante os cultos dominicais.</p>
+                <a href="/infantil" style="color: #60a5fa; text-decoration: none; font-weight: 600;">Saiba Mais →</a>
+              </div>
+              <div style="background-color: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 2rem; display: flex; flex-direction: column;">
+                <h3 style="color: #ffffff; font-size: 1.35rem; font-weight: 600; margin-bottom: 0.75rem;">Jovens & Adolescentes</h3>
+                <p style="color: #a1a1aa; line-height: 1.6; margin-bottom: 1.5rem; flex: 1;">Encontros semanais, louvor, dinâmicas e estudos focados nos desafios da juventude.</p>
+                <a href="/jovens" style="color: #60a5fa; text-decoration: none; font-weight: 600;">Saiba Mais →</a>
+              </div>
+              <div style="background-color: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 2rem; display: flex; flex-direction: column;">
+                <h3 style="color: #ffffff; font-size: 1.35rem; font-weight: 600; margin-bottom: 0.75rem;">Grupos Familiares</h3>
+                <p style="color: #a1a1aa; line-height: 1.6; margin-bottom: 1.5rem; flex: 1;">Reuniões nas casas para oração, comunhão fraterna e fortalecimento mútuo.</p>
+                <a href="/grupos" style="color: #60a5fa; text-decoration: none; font-weight: 600;">Saiba Mais →</a>
+              </div>
+            </div>
+          </div>
+        </section>
+      `
+    });
+
+    // 5. Horários
+    blockManager.add('church-schedule', {
+      label: `
+        <div style="text-align: center;">
+          <svg style="width:28px;height:28px;margin:0 auto 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div style="font-size:11px;font-weight:600;">Horários de Culto</div>
+        </div>
+      `,
+      category: 'Seções Prontas',
+      content: `
+        <section id="cultos" style="padding: 4.5rem 2rem; background-color: #111114; color: #ffffff; font-family: 'Inter', sans-serif;">
+          <div style="max-width: 900px; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 3rem;">
+              <h2 style="font-size: 2.25rem; font-weight: 700; margin-bottom: 0.5rem;">Horários das Celebrações</h2>
+              <p style="color: #a1a1aa;">Estaremos de portas abertas para receber você e seus amigos</p>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              <div style="background-color: #1a1a20; border: 1px solid #2e2e38; border-radius: 10px; padding: 1.5rem 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                  <h4 style="font-size: 1.2rem; font-weight: 600;">Culto de Celebração Dominical</h4>
+                  <p style="color: #a1a1aa; font-size: 0.9rem; margin-top: 0.25rem;">Culto principal com louvor e pregação da Palavra</p>
+                </div>
+                <div style="background-color: #272732; padding: 0.5rem 1.25rem; border-radius: 8px; font-weight: 700; color: #60a5fa; font-size: 1.1rem;">
+                  Domingo • 10h e 19h
+                </div>
+              </div>
+              <div style="background-color: #1a1a20; border: 1px solid #2e2e38; border-radius: 10px; padding: 1.5rem 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                  <h4 style="font-size: 1.2rem; font-weight: 600;">Culto de Oração & Estudo Bíblico</h4>
+                  <p style="color: #a1a1aa; font-size: 0.9rem; margin-top: 0.25rem;">Momento de intercessão e aprofundamento bíblico</p>
+                </div>
+                <div style="background-color: #272732; padding: 0.5rem 1.25rem; border-radius: 8px; font-weight: 700; color: #34d399; font-size: 1.1rem;">
+                  Quarta-feira • 19h30
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      `
+    });
+
+    // 6. Rodapé
+    blockManager.add('church-footer', {
+      label: `
+        <div style="text-align: center;">
+          <svg style="width:28px;height:28px;margin:0 auto 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <div style="font-size:11px;font-weight:600;">Rodapé Completo</div>
+        </div>
+      `,
+      category: 'Estrutura & Menus',
+      content: `
+        <footer style="background-color: #09090b; border-top: 1px solid #27272a; padding: 3rem 2rem 2rem; color: #a1a1aa; font-family: 'Inter', sans-serif;">
+          <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem;">
+            <div style="max-width: 320px;">
+              <h3 style="color: #ffffff; font-size: 1.3rem; font-weight: 800; margin-bottom: 0.75rem;">CHURCH</h3>
+              <p style="font-size: 0.9rem; line-height: 1.6;">Levando esperança, fé e amor para toda a comunidade.</p>
+            </div>
+            <div>
+              <h4 style="color: #ffffff; font-size: 0.95rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.75rem;">Endereço</h4>
+              <p style="font-size: 0.9rem; line-height: 1.6;">Av. Principal, 1000 - Centro<br />São Paulo - SP</p>
+            </div>
+            <div>
+              <h4 style="color: #ffffff; font-size: 0.95rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.75rem;">Contato</h4>
+              <p style="font-size: 0.9rem; line-height: 1.6;">contato@church.org<br />(11) 99999-9999</p>
+            </div>
+          </div>
+          <div style="max-width: 1200px; margin: 2rem auto 0; padding-top: 1.5rem; border-top: 1px solid #1f1f23; text-align: center; font-size: 0.82rem;">
+            © ${new Date().getFullYear()} Church. Todos os direitos reservados.
+          </div>
+        </footer>
+      `
+    });
+
+    // Executa carregamento inicial
+    loadPagesList();
+    loadPageContent(editor, 'home');
+    loadExistingAssets(editor);
+
+    setEditorInstance(editor);
+    editorRef.current = editor;
+  };
+
+  setupEditor();
+
+  return () => {
+    if (editor) {
+      editor.destroy();
+    }
+  };
+}, []);
+
+  // Alternar entre páginas no editor
+  const handleSelectPage = async (newSlug) => {
+    if (newSlug === currentPage) return;
+    if (!editorRef.current) return;
+
+    // Salva automaticamente a página atual antes de alternar
+    try {
+      const html = editorRef.current.getHtml();
+      const css = editorRef.current.getCss();
+      const projectData = editorRef.current.getProjectData();
+      await api.savePage(currentPage, {
+        html,
+        css,
+        project_data: JSON.stringify(projectData)
+      });
+    } catch (e) {
+      console.warn('Auto-save ao trocar de página:', e);
+    }
+
+    setCurrentPage(newSlug);
+    loadPageContent(editorRef.current, newSlug);
+  };
+
+  // Criar nova página
+  const handleCreateNewPage = async (e) => {
+    e.preventDefault();
+    if (!newPageData.title.trim() || !newPageData.slug.trim()) return;
+
+    try {
+      const res = await api.createPage(newPageData);
+      setIsNewPageModalOpen(false);
+      setNewPageData({ title: '', slug: '' });
+      await loadPagesList();
+
+      if (res && res.page) {
+        handleSelectPage(res.page.slug);
+      }
+      alert('Nova página criada com sucesso!');
+    } catch (err) {
+      alert(err.message || 'Erro ao criar página.');
+    }
+  };
+
+  // Excluir página
+  const handleDeleteCurrentPage = async () => {
+    if (currentPage === 'home') {
+      alert('A página principal (Home) não pode ser excluída.');
+      return;
+    }
+
+    if (!window.confirm(`Tem certeza que deseja excluir a página "${currentPage}"?`)) return;
+
+    try {
+      await api.deletePage(currentPage);
+      await loadPagesList();
+      handleSelectPage('home');
+      alert('Página excluída com sucesso.');
+    } catch (err) {
+      alert(err.message || 'Erro ao excluir página.');
+    }
+  };
+
+  // Salvar a página ativa no SQLite
+  const handleSave = async () => {
+    if (!editorRef.current) return;
+    setSaving(true);
+    setSaveStatus(null);
+
+    try {
+      const html = editorRef.current.getHtml();
+      const css = editorRef.current.getCss();
+      const projectData = editorRef.current.getProjectData();
+      const pageInfo = pages.find((p) => p.slug === currentPage);
+
+      await api.savePage(currentPage, {
+        title: pageInfo?.title || currentPage,
+        html,
+        css,
+        project_data: JSON.stringify(projectData)
+      });
+
+      setSaveStatus({
+        type: 'success',
+        message: `Página "${currentPage}" salva com sucesso no banco de dados!`
+      });
+
+      setTimeout(() => {
+        setSaveStatus(null);
+      }, 4000);
+    } catch (err) {
+      setSaveStatus({
+        type: 'error',
+        message: err.message || 'Erro ao salvar página.'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeviceChange = (device) => {
+    if (!editorRef.current) return;
+    editorRef.current.setDevice(device);
+    setActiveDevice(device);
+  };
+
+  const handleOpenAssetManager = () => {
+    if (!editorRef.current) return;
+    editorRef.current.runCommand('open-assets');
+  };
+
+  const handleUndo = () => {
+    if (!editorRef.current) return;
+    editorRef.current.runCommand('core:undo');
+  };
+
+  const handleRedo = () => {
+    if (!editorRef.current) return;
+    editorRef.current.runCommand('core:redo');
+  };
+
+  const handleClear = () => {
+    if (!editorRef.current) return;
+    if (window.confirm('Deseja realmente limpar todos os elementos desta página?')) {
+      editorRef.current.setComponents('');
+      editorRef.current.setStyle('');
+    }
+  };
+
+  const handleViewCode = () => {
+    if (!editorRef.current) return;
+    editorRef.current.runCommand('export-template');
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 68px)', backgroundColor: '#18181f' }}>
+      {/* Barra de Ferramentas Superior com Múltiplas Páginas, Uploads e Controles */}
+      <div style={{
+        height: '54px',
+        backgroundColor: '#121217',
+        borderBottom: '1px solid #282833',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 1.25rem',
+        zIndex: 10,
+        flexWrap: 'wrap',
+        gap: '0.75rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {/* Seletor de Páginas */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#1c1c24', padding: '4px 8px', borderRadius: '8px', border: '1px solid #2e2e3e' }}>
+            <FileText size={15} color="#60a5fa" />
+            <span style={{ fontSize: '0.78rem', color: '#9ca3af', fontWeight: 500 }}>Página:</span>
+            <select
+              value={currentPage}
+              onChange={(e) => handleSelectPage(e.target.value)}
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: '#ffffff',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              {pages.map((p) => (
+                <option key={p.slug} value={p.slug} style={{ backgroundColor: '#181820', color: '#ffffff' }}>
+                  {p.title} (/{p.slug === 'home' ? '' : p.slug})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Botão para Nova Página */}
+          <button
+            id="btn-new-page"
+            onClick={() => setIsNewPageModalOpen(true)}
+            className="btn-secondary"
+            style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
+            title="Criar nova página (ex: /sobre, /cultos)"
+          >
+            <Plus size={13} />
+            <span>Nova Página</span>
+          </button>
+
+          {/* Botão de Excluir Página Secundária */}
+          {currentPage !== 'home' && (
+            <button
+              onClick={handleDeleteCurrentPage}
+              className="btn-secondary"
+              style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: '#f87171' }}
+              title="Excluir esta página"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+
+          <div style={{ width: '1px', height: '20px', backgroundColor: '#282833' }} />
+
+          {/* Alternador de Dispositivos */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', backgroundColor: '#1c1c24', padding: '3px', borderRadius: '6px' }}>
+            <button
+              onClick={() => handleDeviceChange('desktop')}
+              style={{
+                background: activeDevice === 'desktop' ? '#333342' : 'transparent',
+                color: activeDevice === 'desktop' ? '#ffffff' : '#9ca3af',
+                border: 'none',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '0.75rem'
+              }}
+              title="Desktop (100%)"
+            >
+              <Monitor size={14} />
+              <span>Desktop</span>
+            </button>
+            <button
+              onClick={() => handleDeviceChange('tablet')}
+              style={{
+                background: activeDevice === 'tablet' ? '#333342' : 'transparent',
+                color: activeDevice === 'tablet' ? '#ffffff' : '#9ca3af',
+                border: 'none',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '0.75rem'
+              }}
+              title="Tablet (768px)"
+            >
+              <Tablet size={14} />
+              <span>Tablet</span>
+            </button>
+            <button
+              onClick={() => handleDeviceChange('mobile')}
+              style={{
+                background: activeDevice === 'mobile' ? '#333342' : 'transparent',
+                color: activeDevice === 'mobile' ? '#ffffff' : '#9ca3af',
+                border: 'none',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '0.75rem'
+              }}
+              title="Mobile (375px)"
+            >
+              <Smartphone size={14} />
+              <span>Mobile</span>
+            </button>
+          </div>
+
+          {/* Botão para Abrir Galeria / Upload de Fotos */}
+          <button
+            id="btn-open-assets"
+            onClick={handleOpenAssetManager}
+            className="btn-secondary"
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
+            title="Abrir gerenciador de fotos e fazer upload"
+          >
+            <ImageIcon size={14} color="#34d399" />
+            <span>Galeria / Upload</span>
+          </button>
+        </div>
+
+        {/* Feedback de Salvamento */}
+        {saveStatus && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '0.82rem',
+            color: saveStatus.type === 'success' ? '#34d399' : '#f87171'
+          }}>
+            {saveStatus.type === 'success' ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
+            <span>{saveStatus.message}</span>
+          </div>
+        )}
+
+        {/* Ações do Editor */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button onClick={handleUndo} className="btn-secondary" style={{ padding: '0.35rem 0.6rem' }} title="Desfazer (Ctrl+Z)">
+            <Undo2 size={14} />
+          </button>
+          <button onClick={handleRedo} className="btn-secondary" style={{ padding: '0.35rem 0.6rem' }} title="Refazer (Ctrl+Y)">
+            <Redo2 size={14} />
+          </button>
+          <button onClick={handleViewCode} className="btn-secondary" style={{ padding: '0.35rem 0.6rem' }} title="Ver Código">
+            <Code2 size={14} />
+          </button>
+          <button onClick={handleClear} className="btn-secondary" style={{ padding: '0.35rem 0.6rem', color: '#f87171' }} title="Limpar página">
+            <Trash2 size={14} />
+          </button>
+
+          <button
+            id="btn-save-grapes"
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-accent"
+            style={{
+              padding: '0.45rem 1.15rem',
+              fontSize: '0.85rem',
+              backgroundColor: '#3b82f6',
+              color: '#ffffff',
+              border: 'none',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              fontWeight: 600
+            }}
+          >
+            <Save size={15} />
+            <span>{saving ? 'Salvando...' : `Salvar (${currentPage})`}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Canvas do GrapesJS */}
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <div ref={containerRef} id="gjs" style={{ height: '100%', width: '100%' }} />
+      </div>
+
+      {/* Modal Criar Nova Página */}
+      {isNewPageModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsNewPageModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Criar Nova Página</h2>
+              <button className="close-btn" onClick={() => setIsNewPageModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateNewPage} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="form-group">
+                <label className="form-label">Título da Página</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Ex: Sobre Nós"
+                  value={newPageData.title}
+                  onChange={(e) => {
+                    const title = e.target.value;
+                    const autoSlug = title
+                      .toLowerCase()
+                      .normalize('NFD')
+                      .replace(/[\u0300-\u036f]/g, '')
+                      .replace(/[^a-z0-9]/g, '-');
+                    setNewPageData({ title, slug: autoSlug });
+                  }}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Slug da URL (endereço da página)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>localhost:5173/</span>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="sobre-nos"
+                    value={newPageData.slug}
+                    onChange={(e) => setNewPageData({ ...newPageData, slug: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button type="button" className="btn-secondary" onClick={() => setIsNewPageModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-accent">
+                  Criar Página
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

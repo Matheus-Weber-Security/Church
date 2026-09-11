@@ -1,0 +1,11 @@
+{
+  "name": "church",
+  "version": "1.0.0",
+  "description": "Projeto Church com Frontend React e Backend Node.js / SQLite",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "start:backend": "cd backend && npm start",
+    "build:frontend": "cd frontend && npm run build"
+  }
+}

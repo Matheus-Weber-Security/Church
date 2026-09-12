@@ -210,11 +210,11 @@ export const PluginManager = () => {
         <table className="custom-table">
           <thead>
             <tr>
-              <th style="width: 32%;">Plugin / Pacote</th>
-              <th style="width: 38%;">Descrição & Categoria</th>
-              <th style="width: 14%;">Tipo</th>
-              <th style="width: 8%;">Status</th>
-              <th style="width: 8%; text-align: right;">Ações</th>
+              <th style={{ width: '32%' }}>Plugin / Pacote</th>
+              <th style={{ width: '38%' }}>Descrição & Categoria</th>
+              <th style={{ width: '14%' }}>Tipo</th>
+              <th style={{ width: '8%' }}>Status</th>
+              <th style={{ width: '8%', textAlign: 'right' }}>Ações</th>
             </tr>
           </thead>
           <tbody>

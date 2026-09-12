@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apostila e Manual do Usuário - Construtor Visual Web</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #eff6ff;
+      --secondary: #475569;
+      --dark: #0f172a;
+      --surface: #ffffff;
+      --bg-page: #f8fafc;
+      --border: #e2e8f0;
+      --border-dark: #cbd5e1;
+      --text: #1e293b;
+      --text-light: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      background-color: var(--bg-page);
+      line-height: 1.65;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Estilos de Documento / Apostila */
+    .document-wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      background-color: var(--surface);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+    }
+
+    .page {
+      padding: 60px 70px;
+      position: relative;
+    }
+
+    .page-break {
+      page-break-after: always;
+      border-bottom: 2px dashed #e2e8f0;
+      margin-bottom: 20px;
+    }
+
+    @media print {
+      body {
+        background-color: #ffffff;
+      }
+      .document-wrapper {
+        box-shadow: none;
+        max-width: 100%;
+      }
+      .page {
+        padding: 40px 45px;
+      }
+      .page-break {
+        border-bottom: none;
+        margin-bottom: 0;
+      }
+      .no-print {
+        display: none !important;
+      }
+      @page {
+        size: A4;
+        margin: 15mm;
+      }
+    }
+
+    /* Barra Flutuante de Impressão */
+    .print-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .print-btn {
+      background-color: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+
+    .print-btn:hover {
+      background-color: var(--primary-dark);
+    }
+
+    /* Capa da Apostila */
+    .cover {
+      min-height: 850px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: linear-gradient(135deg, #090d16 0%, #1e293b 100%);
+      color: #ffffff;
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+      padding: 80px 70px;
+    }
+
+    .cover::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .cover-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      color: #93c5fd;
+    }
+
+    .cover-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 44px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin: 24px 0 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .cover-subtitle {
+      font-size: 20px;
+      color: #cbd5e1;
+      max-width: 600px;
+      font-weight: 300;
+      line-height: 1.5;
+    }
+
+    .cover-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    /* Tipografia e Títulos */
+    h1, h2, h3, h4 {
+      font-family: 'Outfit', sans-serif;
+      color: var(--dark);
+      letter-spacing: -0.01em;
+    }
+
+    h2.section-heading {
+      font-size: 26px;
+      font-weight: 700;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--dark);
+    }
+
+    h2.section-heading .num-badge {
+      background-color: var(--primary);
+      color: #ffffff;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    h3.sub-heading {
+      font-size: 19px;
+      font-weight: 600;
+      margin: 28px 0 12px;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    p {
+      margin-bottom: 16px;
+      color: #334155;
+    }
+
+    /* Sumário */
+    .toc-container {
+      background-color: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin: 24px 0;
+    }
+
+    .toc-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px dashed var(--border);
+      font-weight: 500;
+    }
+
+    .toc-item:last-child {
+      border-bottom: none;
+    }
+
+    .toc-item a {
+      color: var(--dark);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toc-item a:hover {
+      color: var(--primary);
+    }
+
+    .toc-page-num {
+      color: var(--text-light);
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+    }
+
+    /* Caixas de Alerta e Dicas */
+    .callout {
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      font-size: 14.5px;
+    }
+
+    .callout-tip {
+      background-color: #f0fdf4;
+      border-left: 4px solid var(--success);
+      color: #166534;
+    }
+
+    .callout-info {
+      background-color: #eff6ff;
+      border-left: 4px solid var(--primary);
+      color: #1e40af;
+    }
+
+    .callout-warn {
+      background-color: #fffbeb;
+      border-left: 4px solid var(--warning);
+      color: #92400e;
+    }
+
+    .callout-icon {
+      font-size: 20px;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    /* Mockups Visuais e Ilustrações de UI */
+    .ui-mockup {
+      background: #0f172a;
+      border-radius: 10px;
+      padding: 16px;
+      margin: 20px 0;
+      color: #ffffff;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+      border: 1px solid #1e293b;
+    }
+
+    .mockup-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .circle-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .dot-red { background-color: #ef4444; }
+    .dot-yellow { background-color: #f59e0b; }
+    .dot-green { background-color: #10b981; }
+
+    .mockup-title {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-left: 8px;
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* Badges de Botões da Interface */
+    .btn-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background-color: #1e293b;
+      color: #f8fafc;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 12.5px;
+      font-weight: 600;
+      border: 1px solid #334155;
+      vertical-align: middle;
+      margin: 0 2px;
+    }
+
+    .btn-badge-blue {
+      background-color: #2563eb;
+      border-color: #3b82f6;
+    }
+
+    .btn-badge-green {
+      background-color: #059669;
+      border-color: #10b981;
+    }
+
+    .btn-badge-red {
+      background-color: #dc2626;
+      border-color: #ef4444;
+    }
+
+    .btn-badge-purple {
+      background-color: #7c3aed;
+      border-color: #8b5cf6;
+    }
+
+    /* Grid de Blocos Ilustrativos */
+    .blocks-grid-guide {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .block-card-guide {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      transition: all 0.2s;
+    }
+
+    .block-card-guide:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+    }
+
+    .block-card-guide .icon-container {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      background-color: #eff6ff;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    .block-card-guide h4 {
+      font-size: 15px;
+      margin-bottom: 6px;
+      color: var(--dark);
+    }
+
+    .block-card-guide p {
+      font-size: 13px;
+      color: var(--text-light);
+      margin-bottom: 0;
+      line-height: 1.4;
+    }
+
+    /* Tabelas de Passo a Passo */
+    .step-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .step-table th {
+      background-color: #f8fafc;
+      color: #334155;
+      font-weight: 600;
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 13.5px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    .step-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      background-color: #e2e8f0;
+      color: #334155;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    /* Teclas de Atalho */
+    kbd {
+      background-color: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: 'Fira Code', monospace;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.1);
+    }
+
+    /* Diagrama Visual de 3 Painéis */
+    .editor-layout-diagram {
+      display: grid;
+      grid-template-columns: 200px 1fr 220px;
+      gap: 8px;
+      height: 260px;
+      background: #1e1e24;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #33333f;
+      margin: 20px 0;
+      font-size: 11.5px;
+    }
+
+    .diagram-panel {
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+    }
+
+    .diagram-panel-left {
+      background-color: #17171c;
+      border: 1px solid #282833;
+      color: #a1a1aa;
+    }
+
+    .diagram-canvas {
+      background-color: #ffffff;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border-radius: 4px;
+      font-weight: 600;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    .diagram-panel-right {
+      background-color: #17171c;
+      border: 1px solid #282833;
+      color: #a1a1aa;
+    }
+
+    .diagram-toolbar {
+      grid-column: 1 / -1;
+      height: 38px;
+      background-color: #121217;
+      border: 1px solid #282833;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barra Fixa com Botão de Imprimir / Salvar como PDF -->
+  <div class="print-bar no-print">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
+      <strong>Apostila do Construtor Visual Web</strong>
+      <span style="font-size: 12px; color: #94a3b8; background: #1e293b; padding: 2px 8px; border-radius: 4px;">Manual de Instruções para o Usuário Final</span>
+    </div>
+    <button class="print-btn" onclick="window.print()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+      <span>Salvar como PDF / Imprimir</span>
+    </button>
+  </div>
+
+  <div class="document-wrapper">
+
+    <!-- ============================================================== -->
+    <!-- CAPA DA APOSTILA                                              -->
+    <!-- ============================================================== -->
+    <div class="cover page">
+      <div>
+        <span class="cover-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Manual Completo de Operação
+        </span>
+        <h1 class="cover-title">Construtor Visual Web</h1>
+        <p class="cover-subtitle">
+          Guia prático e ilustrado para criação, edição e gerenciamento de páginas, menus, botões, formulários e conteúdos digitais através do editor visual drag-and-drop.
+        </p>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 24px;">
+        <h4 style="color: #ffffff; font-size: 16px; margin-bottom: 8px;">Para quem é este manual?</h4>
+        <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 0;">
+          Destinado a administradores, criadores de conteúdo e operadores que desejam publicar páginas modernas e responsivas sem a necessidade de escrever uma única linha de código.
+        </p>
+      </div>
+
+      <div class="cover-footer">
+        <div>
+          <strong>Plataforma:</strong> GrapesJS Web Studio Pro &nbsp;|&nbsp; <strong>Edição:</strong> 2026
+        </div>
+        <div>
+          Documentação de Uso Oficial
+        </div>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================== -->
+    <!-- PÁGINA 1: SUMÁRIO GERAL                                       -->
+    <!-- ============================================================== -->
+    <div class="page">
+      <h2 class="section-heading">
+        <span class="num-badge">§</span>
+        Sumário do Manual
+      </h2>
+
+      <div class="toc-container">
+        <div class="toc-item">
+          <a href="#cap1"><strong>1. Acesso e Autenticação no Painel</strong></a>
+          <span class="toc-page-num">Pág. 03</span>
+        </div>
+        <div class="toc-item">
+          <a href="#cap2"><strong>2. Conhecendo a Área de Trabalho do Editor</strong></a>
+          <span class="toc-page-num">Pág. 04</span>
+        </div>
+        <div class="toc-item">
+          <a href="#cap3"><strong>3. Gerenciador de Múltiplas Páginas</strong></a>
+          <span class="toc-page-num">Pág. 05</span>
+        </div>
+        <div class="toc-item">
+          <a href="#cap4"><strong>4. Guia de Blocos Estruturais (Menus, Botões e Seções)</strong></a>
+          <span class="toc-page-num">Pág. 06</span>
+        </div>
+        <div class="toc-item">
+          <a href="#cap5"><strong>5. Edição de Textos e Formatação Avançada</strong></a>
+          <span class="toc-page-num">Pág. 08</span>
+        </div>
+        <div class="toc-item">
+          <a href="#cap6"><strong>6. Galeria de Mídia e Upload de Imagens</strong></a>
+          <span class="toc-page-num">Pág. 09</span>
+        </div>
+        <div class="toc-item">
+          <a href="#cap7"><strong>7. Recursos Interativos (Formulários, Cronômetros e Abas)</strong></a>
+          <span class="toc-page-num">Pág. 10</span>
+        </div>
+        <div class="toc-item">
+          <a href="#cap8"><strong>8. Adaptação para Celular (Design Responsivo Mobile)</strong></a>
+          <span class="toc-page-num">Pág. 12</span>
+        </div>
+        <div class="toc-item">
+          <a href="#cap9"><strong>9. Salvamento, Publicação e Dúvidas Frequentes (FAQ)</strong></a>
+          <span class="toc-page-num">Pág. 13</span>
+        </div>
+        <div class="toc-item">
+          <a href="#cap-bonus"><strong>★ Bônus: Gerenciador de Extensões e Plugins</strong></a>
+          <span class="toc-page-num">Pág. 14</span>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div>
+          <strong>Dica Importante:</strong> Você não precisa memorizar códigos de programação. Todo o sistema opera com a lógica de <em>Arrastar e Soltar</em> (Drag & Drop), seleção com mouse e clique duplo para escrever.
+        </div>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================== -->
+    <!-- CAPÍTULO 1: ACESSO E AUTENTICAÇÃO                              -->
+    <!-- ============================================================== -->
+    <div class="page" id="cap1">
+      <h2 class="section-heading">
+        <span class="num-badge">1</span>
+        Acesso e Autenticação no Painel
+      </h2>
+
+      <p>
+        O painel administrativo do site é protegido por autenticação segura com criptografia e registro automático de acessos.
+      </p>
+
+      <h3 class="sub-heading">Como acessar a tela de Login</h3>
+      <ol style="margin-left: 20px; margin-bottom: 20px;">
+        <li style="margin-bottom: 8px;">Abra seu navegador de internet preferido (Google Chrome, Edge, Safari ou Firefox).</li>
+        <li style="margin-bottom: 8px;">Na barra de endereços, digite: <code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-weight:600;">http://seu-dominio/edit</code> (ou no ambiente de testes: <code>localhost:5173/edit</code>).</li>
+        <li style="margin-bottom: 8px;">Você verá a tela de login estilizada com fundo preto e uma caixa cinza centralizada.</li>
+      </ol>
+
+      <div class="ui-mockup">
+        <div class="mockup-header">
+          <span class="circle-dot dot-red"></span>
+          <span class="circle-dot dot-yellow"></span>
+          <span class="circle-dot dot-green"></span>
+          <span class="mockup-title">Tela de Login — Rota /edit</span>
+        </div>
+        <div style="background: #17171d; border: 1px solid #2e2e38; max-width: 320px; margin: 20px auto; padding: 24px; border-radius: 8px; text-align: center;">
+          <div style="width: 38px; height: 38px; background: #242432; border-radius: 8px; margin: 0 auto 10px; display:flex; align-items:center; justify-content:center;">🔒</div>
+          <div style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">Acesso ao Painel</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-bottom: 14px;">Entre com suas credenciais</div>
+          <div style="background: #0f0f13; border: 1px solid #333342; border-radius: 5px; padding: 8px; margin-bottom: 8px; text-align: left; font-size: 11px; color: #cbd5e1;">Usuário: root</div>
+          <div style="background: #0f0f13; border: 1px solid #333342; border-radius: 5px; padding: 8px; margin-bottom: 14px; text-align: left; font-size: 11px; color: #cbd5e1;">Senha: ••••••••</div>
+          <div style="background: #ffffff; color: #000; padding: 8px; border-radius: 5px; font-weight: 700; font-size: 12px;">Entrar no Painel →</div>
+        </div>
+      </div>
+
+      <table class="step-table">
+        <thead>
+          <tr>
+            <th style="width: 30%;">Campo</th>
+            <th>Instruções</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Usuário</strong></td>
+            <td>Informe seu nome de usuário cadastrado (ex: <code style="font-weight: bold;">root</code>).</td>
+          </tr>
+          <tr>
+            <td><strong>Senha</strong></td>
+            <td>Informe sua senha de acesso correspondente.</td>
+          </tr>
+          <tr>
+            <td><strong>Botão Entrar</strong></td>
+            <td>Clique em <span class="btn-badge btn-badge-blue">Entrar no Painel</span> para abrir o editor.</td>
+          </tr>
+          <tr>
+            <td><strong>Botão Sair (Logout)</strong></td>
+            <td>Localizado no canto superior direito da tela. Clique sempre que terminar o seu trabalho para proteger o site.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div>
+          <strong>Aviso de Segurança:</strong> Todas as tentativas de login bem-sucedidas ou com falhas são gravadas automaticamente no histórico do painel com endereço IP e data/hora.
+        </div>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================== -->
+    <!-- CAPÍTULO 2: CONHECENDO O EDITOR                               -->
+    <!-- ============================================================== -->
+    <div class="page" id="cap2">
+      <h2 class="section-heading">
+        <span class="num-badge">2</span>
+        Conhecendo a Interface do Editor
+      </h2>
+
+      <p>
+        Assim que você entra no painel, a tela se divide em três áreas principais projetadas para que você veja exatamente como a página ficará enquanto monta o layout:
+      </p>
+
+      <!-- Diagrama Visual dos 3 Painéis -->
+      <div class="editor-layout-diagram">
+        <div class="diagram-toolbar">
+          <span>[ CHURCH - PAINEL ] &nbsp; Página: [ Home ▼ ]</span>
+          <span>[ 💻 Desktop ] [ 📱 Mobile ] &nbsp; <span style="background:#2563eb; padding:2px 8px; border-radius:3px;">💾 Salvar</span></span>
+        </div>
+        <div class="diagram-panel diagram-panel-left">
+          <div style="font-weight: 700; color: #ffffff; margin-bottom: 6px;">1. Painel Lateral</div>
+          <div>• Blocos prontos</div>
+          <div>• Menus e Botões</div>
+          <div>• Formulários</div>
+          <div>• Vídeos e Mídias</div>
+        </div>
+        <div class="diagram-canvas">
+          <div>
+            <div style="font-size: 15px; margin-bottom: 4px;">2. Canvas Central</div>
+            <div style="font-size: 11px; color: #64748b; font-weight: normal;">(Área onde você arrasta os blocos e edita o site ao vivo)</div>
+          </div>
+        </div>
+        <div class="diagram-panel diagram-panel-right">
+          <div style="font-weight: 700; color: #ffffff; margin-bottom: 6px;">3. Estilos & Traits</div>
+          <div>• Cores de fundo</div>
+          <div>• Tamanho da fonte</div>
+          <div>• Links e Destinos</div>
+          <div>• Margens e Alinhamento</div>
+        </div>
+      </div>
+
+      <h3 class="sub-heading">Os Principais Botões da Barra Superior</h3>
+
+      <table class="step-table">
+        <thead>
+          <tr>
+            <th style="width: 25%;">Botão / Ícone</th>
+            <th style="width: 20%;">Nome</th>
+            <th>Para que serve?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="btn-badge">Página: [ Home ▼ ]</span></td>
+            <td><strong>Seletor de Página</strong></td>
+            <td>Permite trocar de página para editar a Home, Sobre Nós, Contato, etc.</td>
+          </tr>
+          <tr>
+            <td><span class="btn-badge btn-badge-blue">+ Nova Página</span></td>
+            <td><strong>Criar Página</strong></td>
+            <td>Abre uma janela para criar um novo endereço no site (ex: <code>/servicos</code>).</td>
+          </tr>
+          <tr>
+            <td><span class="btn-badge">💻 Desktop</span></td>
+            <td><strong>Modo Computador</strong></td>
+            <td>Visualiza o site em tela cheia para computadores e notebooks.</td>
+          </tr>
+          <tr>
+            <td><span class="btn-badge">📱 Mobile</span></td>
+            <td><strong>Modo Celular</strong></td>
+            <td>Redimensiona a tela para o formato de smartphone (375px) para conferir a versão móvel.</td>
+          </tr>
+          <tr>
+            <td><span class="btn-badge btn-badge-green">🖼 Galeria / Upload</span></td>
+            <td><strong>Gerenciador de Mídia</strong></td>
+            <td>Abre a galeria com todas as fotos e botão para enviar novas imagens do seu computador.</td>
+          </tr>
+          <tr>
+            <td><span class="btn-badge">↩ Desfazer</span></td>
+            <td><strong>Undo</strong></td>
+            <td>Desfaz a última alteração feita. Você também pode apertar <kbd>Ctrl</kbd> + <kbd>Z</kbd>.</td>
+          </tr>
+          <tr>
+            <td><span class="btn-badge btn-badge-purple">🧩 Plugins</span></td>
+            <td><strong>Gerenciador de Plugins</strong></td>
+            <td>Abre a central de controle para gerenciar, ativar/desativar e adicionar novas extensões ao construtor.</td>
+          </tr>
+          <tr>
+            <td><span class="btn-badge" style="background-color: #b45309; border-color: #f59e0b; color: #fef3c7;">✨ IA (Godolfredo)</span></td>
+            <td><strong>Anjo Assistente IA</strong></td>
+            <td>Abre o chat inteligente com o Godolfredo para tirar qualquer dúvida sobre edição, plugins ou cadastro de usuários em tempo real.</td>
+          </tr>
+          <tr>
+            <td><span class="btn-badge btn-badge-blue">💾 Salvar Página</span></td>
+            <td><strong>Salvar</strong></td>
+            <td>Grava todas as alterações no banco de dados e publica instantaneamente no site.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================== -->
+    <!-- CAPÍTULO 3: GERENCIADOR DE MÚLTIPLAS PÁGINAS                   -->
+    <!-- ============================================================== -->
+    <div class="page" id="cap3">
+      <h2 class="section-heading">
+        <span class="num-badge">3</span>
+        Gerenciador de Múltiplas Páginas
+      </h2>
+
+      <p>
+        O sistema permite que você tenha quantas páginas desejar no site (ex: <em>Home</em>, <em>Sobre Nós</em>, <em>Serviços</em>, <em>Contato</em>, <em>Perguntas Frequentes</em>).
+      </p>
+
+      <h3 class="sub-heading">Passo a Passo: Como Criar uma Nova Página</h3>
+
+      <table class="step-table">
+        <tbody>
+          <tr>
+            <td><span class="step-num">1</span></td>
+            <td>Na barra superior do editor, clique no botão <span class="btn-badge btn-badge-blue">+ Nova Página</span>.</td>
+          </tr>
+          <tr>
+            <td><span class="step-num">2</span></td>
+            <td>
+              Uma janela será exibida solicitando dois dados fundamentais:
+              <ul style="margin: 8px 0 0 16px;">
+                <li><strong>Título da Página:</strong> O nome formal (ex: <code>Sobre a Empresa</code>).</li>
+                <li><strong>Slug (Endereço da URL):</strong> O link que as pessoas vão digitar no navegador (ex: <code>sobre</code>, que gerará <code>seusite.com/sobre</code>).</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="step-num">3</span></td>
+            <td>Clique no botão <strong>"Criar Página"</strong>. O editor criará a nova página vazia pronta para ser construída!</td>
+          </tr>
+          <tr>
+            <td><span class="step-num">4</span></td>
+            <td>
+              Monte o conteúdo arrastando blocos e clique no botão <span class="btn-badge btn-badge-blue">💾 Salvar</span>. A nova página já estará acessível publicamente na internet!
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="ui-mockup">
+        <div class="mockup-header">
+          <span class="circle-dot dot-red"></span>
+          <span class="circle-dot dot-yellow"></span>
+          <span class="circle-dot dot-green"></span>
+          <span class="mockup-title">Janela de Criação de Nova Página</span>
+        </div>
+        <div style="background: #17171d; border: 1px solid #2e2e38; max-width: 440px; margin: 10px auto; padding: 20px; border-radius: 8px;">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 12px; color: #fff;">Criar Nova Página</div>
+          <div style="font-size: 11px; color: #a1a1aa; margin-bottom: 4px;">Título da Página</div>
+          <div style="background: #0f0f13; border: 1px solid #333; padding: 7px; border-radius: 4px; font-size: 12px; margin-bottom: 10px; color:#fff;">Nossos Serviços</div>
+          <div style="font-size: 11px; color: #a1a1aa; margin-bottom: 4px;">Endereço da URL (Slug)</div>
+          <div style="background: #0f0f13; border: 1px solid #333; padding: 7px; border-radius: 4px; font-size: 12px; margin-bottom: 14px; color:#60a5fa;">seusite.com/servicos</div>
+          <div style="text-align: right;">
+            <span style="background: #3b82f6; color: #fff; padding: 6px 14px; border-radius: 4px; font-weight: 600; font-size: 12px;">Criar Página</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">⭐</span>
+        <div>
+          <strong>Proteção da Página Principal:</strong> A página <code>home</code> é a raiz do seu site (<code>seusite.com/</code>) e não pode ser excluída, garantindo que o seu site nunca fique fora do ar por acidente.
+        </div>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================== -->
+    <!-- CAPÍTULO 4: GUIA DE BLOCOS E COMPONENTES                      -->
+    <!-- ============================================================== -->
+    <div class="page" id="cap4">
+      <h2 class="section-heading">
+        <span class="num-badge">4</span>
+        Guia de Blocos Estruturais
+      </h2>
+
+      <p>
+        Para adicionar qualquer elemento à página, basta **clicar no bloco no painel lateral esquerdo e arrastá-lo** para o local desejado no canvas central.
+      </p>
+
+      <div class="blocks-grid-guide">
+        <div class="block-card-guide">
+          <div class="icon-container">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+          </div>
+          <h4>Menu de Navegação (Navbar)</h4>
+          <p>Cabeçalho completo com logotipo, links de navegação para outras páginas e botão de chamada.</p>
+        </div>
+
+        <div class="block-card-guide">
+          <div class="icon-container">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="10" rx="3"/><path d="M12 11h.01"/></svg>
+          </div>
+          <h4>Botão com Link (CTA)</h4>
+          <p>Botão de ação com link configurável para WhatsApp, formulários ou páginas externas.</p>
+        </div>
+
+        <div class="block-card-guide">
+          <div class="icon-container">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          </div>
+          <h4>Hero Banner</h4>
+          <p>Seção de destaque com título em tamanho grande, subtítulo chamativo e botões duplos.</p>
+        </div>
+
+        <div class="block-card-guide">
+          <div class="icon-container">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </div>
+          <h4>Grade de Cards</h4>
+          <p>Estrutura em 3 colunas para destacar serviços, produtos, diferenciais ou avisos com links.</p>
+        </div>
+
+        <div class="block-card-guide">
+          <div class="icon-container">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h4>Tabela de Horários / Cronograma</h4>
+          <p>Caixas informativas com dias, horários e descrições detalhadas de funcionamento.</p>
+        </div>
+
+        <div class="block-card-guide">
+          <div class="icon-container">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <h4>Rodapé Institucional</h4>
+          <p>Seção final com informações de endereço, contato por e-mail/telefone e direitos autorais.</p>
+        </div>
+      </div>
+
+      <h3 class="sub-heading">Como Configurar Links e Destinos de Botões (Trait Manager)</h3>
+
+      <table class="step-table">
+        <tbody>
+          <tr>
+            <td style="width: 30%;"><strong>Passo 1: Selecionar</strong></td>
+            <td>Dê um clique no botão ou no link do menu que você quer configurar.</td>
+          </tr>
+          <tr>
+            <td><strong>Passo 2: Abrir Propriedades</strong></td>
+            <td>No painel lateral direito, clique no ícone de engrenagem ⚙️ (<strong>Traits / Propriedades</strong>).</td>
+          </tr>
+          <tr>
+            <td><strong>Passo 3: Configurar o Link (Href)</strong></td>
+            <td>
+              No campo <strong>Href</strong>, digite o destino:
+              <ul style="margin-top: 4px; margin-left: 14px;">
+                <li>Para outra página do seu site: digite <code>/sobre</code> ou <code>/contato</code>.</li>
+                <li>Para um link externo: digite <code>https://wa.me/5511999999999</code> ou <code>https://google.com</code>.</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Passo 4: Abrir em Nova Aba</strong></td>
+            <td>No campo <strong>Target</strong>, escolha <code>Nova Janela (_blank)</code> caso queira que o visitante não saia do seu site ao clicar.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================== -->
+    <!-- CAPÍTULO 5: EDIÇÃO DE TEXTO E TIPOGRAFIA                       -->
+    <!-- ============================================================== -->
+    <div class="page" id="cap5">
+      <h2 class="section-heading">
+        <span class="num-badge">5</span>
+        Edição de Textos e Formatação Avançada
+      </h2>
+
+      <p>
+        O editor possui o recurso de **Edição de Texto Direta (WYSIWYG)** com o plugin integrado CKEditor.
+      </p>
+
+      <h3 class="sub-heading">Como Alterar Textos na Tela</h3>
+      <ol style="margin-left: 20px; margin-bottom: 20px;">
+        <li style="margin-bottom: 8px;"><strong>Duplo Clique:</strong> Dê dois cliques rápidos em qualquer texto que esteja na página (títulos, parágrafos, botões ou legendas).</li>
+        <li style="margin-bottom: 8px;">Uma barra de ferramentas rica aparecerá automaticamente acima do texto selecionado.</li>
+        <li style="margin-bottom: 8px;">Você pode digitar normalmente, apagar ou colar um texto do seu Word ou bloco de notas.</li>
+      </ol>
+
+      <div class="ui-mockup">
+        <div class="mockup-header">
+          <span class="circle-dot dot-red"></span>
+          <span class="circle-dot dot-yellow"></span>
+          <span class="circle-dot dot-green"></span>
+          <span class="mockup-title">Barra Flutuante de Formatação de Texto (CKEditor)</span>
+        </div>
+        <div style="background: #242432; border: 1px solid #3b3b4f; border-radius: 6px; padding: 10px; display: inline-flex; gap: 8px; flex-wrap: wrap;">
+          <span style="background: #17171d; color: #fff; padding: 3px 8px; border-radius: 3px; font-weight: bold;">B (Negrito)</span>
+          <span style="background: #17171d; color: #fff; padding: 3px 8px; border-radius: 3px; font-style: italic;">I (Itálico)</span>
+          <span style="background: #17171d; color: #fff; padding: 3px 8px; border-radius: 3px; text-decoration: underline;">U (Sublinhado)</span>
+          <span style="background: #17171d; color: #fff; padding: 3px 8px; border-radius: 3px;">• Lista</span>
+          <span style="background: #17171d; color: #fff; padding: 3px 8px; border-radius: 3px;">1. Numerada</span>
+          <span style="background: #17171d; color: #38bdf8; padding: 3px 8px; border-radius: 3px;">🎨 Cor da Fonte</span>
+          <span style="background: #17171d; color: #f59e0b; padding: 3px 8px; border-radius: 3px;">🔗 Link</span>
+        </div>
+      </div>
+
+      <h3 class="sub-heading">Como Alterar Cores e Tamanhos pelo Painel de Estilos (Style Manager)</h3>
+      <p>
+        Se você quiser mudar a cor de fundo de uma seção, a cor de um texto ou o espaçamento com precisão milimétrica:
+      </p>
+
+      <table class="step-table">
+        <tbody>
+          <tr>
+            <td style="width: 25%;"><strong>1. Selecionar Elemento</strong></td>
+            <td>Dê um clique simples na seção, caixa ou texto que você deseja estilizar.</td>
+          </tr>
+          <tr>
+            <td><strong>2. Abrir Pincel</strong></td>
+            <td>No canto superior direito, clique no ícone de pincel 🖌️ (<strong>Gerenciador de Estilos</strong>).</td>
+          </tr>
+          <tr>
+            <td><strong>3. Tipografia</strong></td>
+            <td>Altere <em>Font Family</em> (tipo de letra), <em>Font Size</em> (tamanho) ou <em>Text Align</em> (alinhamento).</td>
+          </tr>
+          <tr>
+            <td><strong>4. Dimensões</strong></td>
+            <td>Ajuste <em>Padding</em> (espaço interno) e <em>Margin</em> (distância dos outros elementos).</td>
+          </tr>
+          <tr>
+            <td><strong>5. Cores & Fundos</strong></td>
+            <td>Selecione <em>Background Color</em> para escolher qualquer cor ou gradiente moderno.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================== -->
+    <!-- CAPÍTULO 6: GALERIA DE MÍDIA E UPLOAD                         -->
+    <!-- ============================================================== -->
+    <div class="page" id="cap6">
+      <h2 class="section-heading">
+        <span class="num-badge">6</span>
+        Galeria de Mídia e Upload de Imagens
+      </h2>
+
+      <p>
+        O sistema possui um **serviço de armazenamento local integrado** com suporte a upload de arquivos direto do seu computador.
+      </p>
+
+      <h3 class="sub-heading">Como Enviar Novas Fotos</h3>
+      <table class="step-table">
+        <tbody>
+          <tr>
+            <td><span class="step-num">1</span></td>
+            <td>Na barra superior do editor, clique no botão <span class="btn-badge btn-badge-green">🖼 Galeria / Upload</span>.</td>
+          </tr>
+          <tr>
+            <td><span class="step-num">2</span></td>
+            <td>Uma janela modal se abrirá exibindo todas as fotos já enviadas anteriormente para o site.</td>
+          </tr>
+          <tr>
+            <td><span class="step-num">3</span></td>
+            <td>
+              <strong>Para enviar novas fotos:</strong> você pode arrastar arquivos de imagem diretamente da pasta do seu computador para dentro da janela, ou clicar em <em>"Escolher Arquivos"</em>.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="step-num">4</span></td>
+            <td>O servidor processa a foto, salva na pasta segura e adiciona a imagem imediatamente à sua biblioteca.</td>
+          </tr>
+          <tr>
+            <td><span class="step-num">5</span></td>
+            <td>Basta dar um clique duplo na imagem desejada para aplicá-la no elemento selecionado!</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="ui-mockup">
+        <div class="mockup-header">
+          <span class="circle-dot dot-red"></span>
+          <span class="circle-dot dot-yellow"></span>
+          <span class="circle-dot dot-green"></span>
+          <span class="mockup-title">Janela de Upload do Asset Manager</span>
+        </div>
+        <div style="background: #17171d; border: 2px dashed #3b82f6; border-radius: 8px; padding: 28px; text-align: center; color: #cbd5e1;">
+          <div style="font-size: 28px; margin-bottom: 8px;">📂</div>
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Arraste e solte fotos aqui</div>
+          <div style="font-size: 12px; color: #94a3b8;">Formatos suportados: JPG, PNG, WEBP, SVG e GIF (Até 10MB por arquivo)</div>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div>
+          <strong>Dica Prática:</strong> Ao arrastar um bloco de "Imagem" para a página, você também pode dar um duplo clique diretamente sobre a imagem na tela para abrir a galeria e escolher qual foto quer colocar ali.
+        </div>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================== -->
+    <!-- CAPÍTULO 7: RECURSOS INTERATIVOS E PLUGINS                    -->
+    <!-- ============================================================== -->
+    <div class="page" id="cap7">
+      <h2 class="section-heading">
+        <span class="num-badge">7</span>
+        Recursos Interativos e Formulários
+      </h2>
+
+      <p>
+        O editor vem equipado com blocos funcionais avançados para tornar suas páginas dinâmicas e interativas:
+      </p>
+
+      <h3 class="sub-heading">1. Componentes de Formulários (Formulário de Contato / Cadastro)</h3>
+      <p>
+        No painel lateral, na categoria <strong>Formulários</strong>, você tem acesso a:
+      </p>
+      <ul style="margin-left: 20px; margin-bottom: 16px;">
+        <li><strong>Caixa de Formulário (Form):</strong> O container que envolve os campos.</li>
+        <li><strong>Campo de Texto (Input):</strong> Onde o visitante digita nome, e-mail, telefone, etc.</li>
+        <li><strong>Área de Texto (Textarea):</strong> Campo maior para mensagens longas ou depoimentos.</li>
+        <li><strong>Caixa de Seleção (Select / Dropdown):</strong> Menu de opções para o visitante escolher uma resposta.</li>
+        <li><strong>Botão de Envio (Button Submit):</strong> O botão que envia a mensagem.</li>
+      </ul>
+
+      <h3 class="sub-heading">2. Cronômetro Regressivo (Countdown)</h3>
+      <p>
+        Ideal para eventos futuros, inaugurações, datas comemorativas ou encerramento de prazos.
+      </p>
+      <div style="background: #1e1e24; border: 1px solid #33333f; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+        <div style="display: flex; gap: 12px; justify-content: center; text-align: center; color: #fff;">
+          <div style="background:#121217; padding:10px 16px; border-radius:6px;"><span style="font-size:20px; font-weight:700; color:#60a5fa;">14</span><br><small style="font-size:10px; color:#a1a1aa;">DIAS</small></div>
+          <div style="background:#121217; padding:10px 16px; border-radius:6px;"><span style="font-size:20px; font-weight:700; color:#60a5fa;">08</span><br><small style="font-size:10px; color:#a1a1aa;">HORAS</small></div>
+          <div style="background:#121217; padding:10px 16px; border-radius:6px;"><span style="font-size:20px; font-weight:700; color:#60a5fa;">45</span><br><small style="font-size:10px; color:#a1a1aa;">MINUTOS</small></div>
+          <div style="background:#121217; padding:10px 16px; border-radius:6px;"><span style="font-size:20px; font-weight:700; color:#60a5fa;">20</span><br><small style="font-size:10px; color:#a1a1aa;">SEGUNDOS</small></div>
+        </div>
+      </div>
+      <p>
+        <strong>Como ajustar a data final:</strong> Selecione o cronômetro, vá no painel de engrenagem ⚙️ (Traits) e escolha a data e a hora do evento no calendário.
+      </p>
+
+      <h3 class="sub-heading">3. Sistema de Abas Interativas (Tabs)</h3>
+      <p>
+        Permite organizar muito conteúdo em um espaço compacto. O visitante clica na aba (ex: <em>"Aba 1: Detalhes"</em>, <em>"Aba 2: Preços"</em>, <em>"Aba 3: Dúvidas"</em>) e o conteúdo muda na hora sem recarregar a página.
+      </p>
+
+      <h3 class="sub-heading">4. Bloco de Código Customizado (Custom Code)</h3>
+      <p>
+        Permite colar código HTML, CSS ou JavaScript externo de qualquer plataforma:
+      </p>
+      <ul style="margin-left: 20px;">
+        <li><strong>Google Maps:</strong> Cole o código <code>&lt;iframe&gt;</code> gerado pelo Google Maps para exibir o mapa interativo de localização da sua empresa.</li>
+        <li><strong>Vídeos do YouTube/Vimeo:</strong> Cole o código de incorporação de transmissões ao vivo ou vídeos.</li>
+        <li><strong>Widgets externos:</strong> Botões do WhatsApp Flutuante, feeds de Instagram ou reprodutores de áudio.</li>
+      </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================== -->
+    <!-- CAPÍTULO 8: ADAPTAÇÃO PARA CELULAR (MOBILE)                    -->
+    <!-- ============================================================== -->
+    <div class="page" id="cap8">
+      <h2 class="section-heading">
+        <span class="num-badge">8</span>
+        Adaptação para Celular (Design Responsivo)
+      </h2>
+
+      <p>
+        Mais de 70% dos acessos à internet acontecem por smartphones. O editor possui controle inteligente de telas para que seu site fique perfeito tanto no computador quanto no celular.
+      </p>
+
+      <h3 class="sub-heading">Como funciona a edição Mobile no GrapesJS</h3>
+      <p>
+        O editor trabalha com a lógica de <strong>Media Queries</strong>. Quando você altera o modo de visualização para celular, qualquer alteração que você fizer só se aplica ao celular!
+      </p>
+
+      <table class="step-table">
+        <tbody>
+          <tr>
+            <td style="width: 25%;"><strong>1. Alternar Modo</strong></td>
+            <td>No topo da tela, clique no botão <span class="btn-badge">📱 Mobile</span>. O canvas central se ajustará para o tamanho da tela de um smartphone.</td>
+          </tr>
+          <tr>
+            <td><strong>2. Ajustar Fontes</strong></td>
+            <td>Se um título ficou muito grande na tela do celular, dê um clique nele, abra o painel de Estilos 🖌️ e diminua o <em>Font Size</em> (ex: de 40px para 24px). Isso NÃO estragará o tamanho no computador!</td>
+          </tr>
+          <tr>
+            <td><strong>3. Ajustar Colunas</strong></td>
+            <td>Nossos blocos de cards já vêm configurados para se empilharem verticalmente no celular de forma automática para facilitar a leitura.</td>
+          </tr>
+          <tr>
+            <td><strong>4. Ocultar Elementos</strong></td>
+            <td>Se houver algum banner muito pesado que você não quer que apareça no celular, selecione o elemento, vá no painel de Estilos e marque <code>Display: None</code>. Ele sumirá no celular e continuará no computador.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="ui-mockup">
+        <div class="mockup-header">
+          <span class="circle-dot dot-red"></span>
+          <span class="circle-dot dot-yellow"></span>
+          <span class="circle-dot dot-green"></span>
+          <span class="mockup-title">Simulação de Tela Responsiva no Editor</span>
+        </div>
+        <div style="display: flex; gap: 16px; justify-content: center; align-items: center; padding: 10px;">
+          <div style="background: #1e1e24; border: 2px solid #3b82f6; border-radius: 16px; width: 140px; height: 200px; padding: 10px; text-align: center; font-size: 10px; color: #a1a1aa;">
+            <div style="width: 20px; height: 3px; background: #555; margin: 0 auto 6px; border-radius: 2px;"></div>
+            <div style="background: #3b82f6; color: #fff; border-radius: 2px; padding: 2px; margin-bottom: 4px;">Logo</div>
+            <div style="background: #333; height: 60px; margin-bottom: 4px; border-radius: 2px;">Banner</div>
+            <div style="background: #252530; height: 35px; border-radius: 2px;">Card 1</div>
+          </div>
+          <div style="color: #64748b; font-size: 20px;">➔</div>
+          <div style="background: #1e1e24; border: 2px solid #334155; border-radius: 6px; width: 260px; height: 160px; padding: 10px; text-align: center; font-size: 10px; color: #a1a1aa;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <span style="color:#fff; font-weight:bold;">Logo</span>
+              <span>Menu Link 1 | Link 2</span>
+            </div>
+            <div style="background: #333; height: 60px; margin-bottom: 6px; border-radius: 2px;">Banner Amplo</div>
+            <div style="display:flex; gap:4px;">
+              <div style="background:#252530; flex:1; height:30px; border-radius:2px;">Card 1</div>
+              <div style="background:#252530; flex:1; height:30px; border-radius:2px;">Card 2</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================== -->
+    <!-- CAPÍTULO 9: SALVAMENTO E FAQ                                  -->
+    <!-- ============================================================== -->
+    <div class="page" id="cap9">
+      <h2 class="section-heading">
+        <span class="num-badge">9</span>
+        Salvamento, Publicação e FAQ
+      </h2>
+
+      <h3 class="sub-heading">Como Salvar e Publicar Suas Alterações</h3>
+      <p>
+        Ao terminar suas modificações, localize no canto superior direito o botão azul destacado:
+      </p>
+      <div style="text-align: center; margin: 16px 0;">
+        <span class="btn-badge btn-badge-blue" style="font-size: 15px; padding: 8px 20px;">
+          💾 Salvar (nome-da-página)
+        </span>
+      </div>
+      <p>
+        Ao clicar, uma mensagem verde de confirmação aparecerá: <em>"Página salva com sucesso no banco de dados!"</em>. A partir deste segundo, qualquer visitante que entrar no site já verá o novo conteúdo.
+      </p>
+
+      <h3 class="sub-heading">Perguntas Frequentes (FAQ)</h3>
+
+      <div style="margin-top: 16px;">
+        <div style="margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 8px;">
+          <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 4px;">❓ Cometi um erro ou apaguei algo sem querer. O que fazer?</h4>
+          <p style="font-size: 13.5px; margin-bottom: 0;">
+            Basta clicar no botão <strong>↩ Desfazer</strong> no topo da tela ou pressionar as teclas <kbd>Ctrl</kbd> + <kbd>Z</kbd> no seu teclado para reverter a ação imediatamente.
+          </p>
+        </div>
+
+        <div style="margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 8px;">
+          <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 4px;">❓ Como fazer para ver o site ao vivo sem o editor?</h4>
+          <p style="font-size: 13.5px; margin-bottom: 0;">
+            No menu superior preto, clique em <strong>"Ver Site"</strong> ou simplesmente abra uma nova aba no seu navegador e digite o endereço raiz do site (<code>localhost:5173/</code> ou seu domínio).
+          </p>
+        </div>
+
+        <div style="margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 8px;">
+          <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 4px;">❓ Como criar um botão que abre meu WhatsApp direto?</h4>
+          <p style="font-size: 13.5px; margin-bottom: 0;">
+            Clique no botão, vá na engrenagem ⚙️ e, no campo <em>Href</em>, coloque: <br>
+            <code>https://wa.me/55DDDSEUNUMERO</code> (exemplo: <code>https://wa.me/5511999998888</code>). No campo <em>Target</em>, marque <code>_blank</code>.
+          </p>
+        </div>
+
+        <div style="margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 8px;">
+          <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 4px;">❓ Preciso salvar a página antes de trocar para outra?</h4>
+          <p style="font-size: 13.5px; margin-bottom: 0;">
+            O sistema possui um salvamento automático de segurança ao trocar de página, mas é sempre altamente recomendado que você clique em <strong>💾 Salvar</strong> antes de fechar o navegador ou trocar de aba.
+          </p>
+        </div>
+      </div>
+
+      <h3 class="sub-heading">Tabela de Teclas de Atalho Úteis</h3>
+      <table class="step-table">
+        <thead>
+          <tr>
+            <th style="width: 40%;">Comando</th>
+            <th>Teclas de Atalho</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Desfazer última alteração</td>
+            <td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td>
+          </tr>
+          <tr>
+            <td>Refazer alteração desfeita</td>
+            <td><kbd>Ctrl</kbd> + <kbd>Y</kbd> (ou <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd>)</td>
+          </tr>
+          <tr>
+            <td>Excluir elemento selecionado</td>
+            <td>Tecla <kbd>Delete</kbd> ou <kbd>Backspace</kbd></td>
+          </tr>
+          <tr>
+            <td>Duplicar elemento selecionado</td>
+            <td><kbd>Ctrl</kbd> + <kbd>D</kbd></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--text-light); font-size: 13px;">
+        Capítulo 9 concluído — Prossiga para o Capítulo Bônus a seguir.
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ============================================================== -->
+    <!-- CAPÍTULO BÔNUS: GERENCIADOR DE EXTENSÕES E PLUGINS             -->
+    <!-- ============================================================== -->
+    <div class="page" id="cap-bonus">
+      <h2 class="section-heading">
+        <span class="num-badge" style="background: linear-gradient(135deg, #7c3aed, #a855f7);">★</span>
+        Bônus: Gerenciador de Extensões e Plugins
+      </h2>
+
+      <p>
+        O <strong>Gerenciador de Plugins</strong> é a central de customização do construtor visual. Através dele, você tem total controle sobre os recursos disponíveis no editor, podendo ativar ferramentas especiais, ocultar blocos não utilizados para manter sua área de trabalho limpa ou integrar novas bibliotecas criadas pela comunidade.
+      </p>
+
+      <h3 class="sub-heading">Como Acessar o Painel de Plugins</h3>
+      <p>
+        No menu superior preto do painel administrativo (<code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">/edit</code>), clique na aba identificada pelo ícone de quebra-cabeça:
+      </p>
+
+      <div style="text-align: center; margin: 16px 0;">
+        <span class="btn-badge btn-badge-purple" style="font-size: 15px; padding: 8px 22px;">
+          🧩 Plugins
+        </span>
+      </div>
+
+      <!-- Mockup Visual da Tela do Gerenciador de Plugins -->
+      <div class="ui-mockup">
+        <div class="mockup-header">
+          <span class="circle-dot dot-red"></span>
+          <span class="circle-dot dot-yellow"></span>
+          <span class="circle-dot dot-green"></span>
+          <span class="mockup-title">Central de Plugins do Construtor Web (http://seu-dominio/edit → Plugins)</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h4 style="color: #ffffff; font-size: 16px; margin-bottom: 2px;">🧩 Plugins do GrapesJS</h4>
+            <span style="font-size: 12px; color: #94a3b8;">Gerencie as extensões instaladas e habilite novos módulos visuais</span>
+          </div>
+          <span class="btn-badge btn-badge-purple" style="padding: 6px 14px; font-size: 13px;">
+            + Adicionar Plugin
+          </span>
+        </div>
+
+        <!-- Cards de Métricas -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+          <div style="background: #17171c; border: 1px solid #282833; border-radius: 8px; padding: 12px;">
+            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Total de Plugins</div>
+            <div style="font-size: 22px; font-weight: 700; color: #ffffff;">9</div>
+          </div>
+          <div style="background: #17171c; border: 1px solid #282833; border-radius: 8px; padding: 12px;">
+            <div style="font-size: 11px; color: #10b981; text-transform: uppercase;">Plugins Ativos</div>
+            <div style="font-size: 22px; font-weight: 700; color: #10b981;">9</div>
+          </div>
+          <div style="background: #17171c; border: 1px solid #282833; border-radius: 8px; padding: 12px;">
+            <div style="font-size: 11px; color: #3b82f6; text-transform: uppercase;">Plugins Nativos</div>
+            <div style="font-size: 22px; font-weight: 700; color: #3b82f6;">9</div>
+          </div>
+        </div>
+
+        <!-- Tabela Ilustrativa do Mockup -->
+        <div style="background: #121217; border: 1px solid #282833; border-radius: 8px; overflow: hidden; font-size: 12.5px;">
+          <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 60px; padding: 10px 14px; background: #1a1a24; font-weight: 600; color: #94a3b8; border-bottom: 1px solid #282833;">
+            <span>Plugin</span>
+            <span>Categoria</span>
+            <span>Tipo</span>
+            <span>Status</span>
+            <span style="text-align: right;">Ações</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 60px; padding: 12px 14px; border-bottom: 1px solid #1f1f2a; align-items: center;">
+            <div>
+              <strong style="color: #ffffff;">Webpage Preset</strong>
+              <div style="font-size: 11px; color: #71717a;">Estrutura e blocos de página web</div>
+            </div>
+            <span style="color: #cbd5e1;">Estrutura & Layout</span>
+            <span><span style="background: #1e3a5f; color: #60a5fa; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">🔒 Nativo</span></span>
+            <span><span style="background: #064e3b; color: #34d399; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">● Ativo</span></span>
+            <span style="text-align: right; color: #52525b; font-size: 14px;">🔒</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 60px; padding: 12px 14px; border-bottom: 1px solid #1f1f2a; align-items: center;">
+            <div>
+              <strong style="color: #ffffff;">Formulários</strong>
+              <div style="font-size: 11px; color: #71717a;">Componentes avançados de formulários</div>
+            </div>
+            <span style="color: #cbd5e1;">Formulários</span>
+            <span><span style="background: #1e3a5f; color: #60a5fa; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">🔒 Nativo</span></span>
+            <span><span style="background: #064e3b; color: #34d399; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">● Ativo</span></span>
+            <span style="text-align: right; color: #52525b; font-size: 14px;">🔒</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 60px; padding: 12px 14px; align-items: center;">
+            <div>
+              <strong style="color: #ffffff;">Cronômetro Regressivo</strong>
+              <div style="font-size: 11px; color: #71717a;">Cronômetro de contagem regressiva para eventos</div>
+            </div>
+            <span style="color: #cbd5e1;">Mídia & Elementos</span>
+            <span><span style="background: #1e3a5f; color: #60a5fa; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">🔒 Nativo</span></span>
+            <span><span style="background: #064e3b; color: #34d399; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">● Ativo</span></span>
+            <span style="text-align: right; color: #52525b; font-size: 14px;">🔒</span>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="sub-heading">Plugins Nativos vs. Plugins Customizados</h3>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 18px 0;">
+        <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px;">
+          <h4 style="color: #0369a1; font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            🔒 Plugins Nativos do Sistema
+          </h4>
+          <p style="font-size: 13px; color: #0c4a6e; margin-bottom: 8px; line-height: 1.5;">
+            São os 9 módulos essenciais já pré-configurados pela equipe de desenvolvimento. Eles compõem a fundação do construtor de páginas.
+          </p>
+          <ul style="font-size: 12.5px; color: #0c4a6e; margin-left: 18px; margin-bottom: 0;">
+            <li><strong>Proteção total:</strong> Não podem ser excluídos, evitando que o editor quebre por engano.</li>
+            <li><strong>Controle Liga/Desliga:</strong> Você pode desativar qualquer um deles para ocultar blocos que não esteja usando.</li>
+          </ul>
+        </div>
+
+        <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 16px;">
+          <h4 style="color: #7e22ce; font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            ⚡ Plugins Customizados (Comunidade)
+          </h4>
+          <p style="font-size: 13px; color: #581c87; margin-bottom: 8px; line-height: 1.5;">
+            São novos pacotes e scripts externos criados pela comunidade mundial do GrapesJS que você pode cadastrar a qualquer momento.
+          </p>
+          <ul style="font-size: 12.5px; color: #581c87; margin-left: 18px; margin-bottom: 0;">
+            <li><strong>Liberdade total:</strong> Podem ser ativados, desativados ou excluídos com 1 clique.</li>
+            <li><strong>Instalação simplificada:</strong> Basta fornecer o link do script CDN (ex: unpkg ou jsdelivr).</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 class="sub-heading">Catálogo dos 9 Plugins Nativos Inclusos</h3>
+      <table class="step-table">
+        <thead>
+          <tr>
+            <th style="width: 25%;">Nome do Plugin</th>
+            <th style="width: 20%;">Identificador</th>
+            <th>O que ele adiciona no seu Editor?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. Webpage Preset</strong></td>
+            <td><code>grapesjs-preset-webpage</code></td>
+            <td>Layout base de página, barra superior de controle e blocos estruturais prontos.</td>
+          </tr>
+          <tr>
+            <td><strong>2. Blocos Básicos</strong></td>
+            <td><code>grapesjs-blocks-basic</code></td>
+            <td>Colunas responsivas flexíveis, tabelas, links, caixas de texto e mapas interativos.</td>
+          </tr>
+          <tr>
+            <td><strong>3. Formulários</strong></td>
+            <td><code>grapesjs-plugin-forms</code></td>
+            <td>Campos de entrada de dados: input de texto, caixas de seleção, opções de rádio, botão de envio e labels.</td>
+          </tr>
+          <tr>
+            <td><strong>4. Código Customizado</strong></td>
+            <td><code>grapesjs-custom-code</code></td>
+            <td>Bloco especial com janela modal para colar qualquer código HTML, CSS ou JavaScript externo livremente.</td>
+          </tr>
+          <tr>
+            <td><strong>5. Estilos de Fundo</strong></td>
+            <td><code>grapesjs-style-bg</code></td>
+            <td>Painel avançado no Style Manager para criar gradientes lineares/radiais e camadas de texturas.</td>
+          </tr>
+          <tr>
+            <td><strong>6. Cronômetro Regressivo</strong></td>
+            <td><code>grapesjs-component-countdown</code></td>
+            <td>Contador regressivo animado mostrando Dias, Horas, Minutos e Segundos para eventos e lançamentos.</td>
+          </tr>
+          <tr>
+            <td><strong>7. Abas Interativas (Tabs)</strong></td>
+            <td><code>grapesjs-tabs</code></td>
+            <td>Componente de abas que alterna painéis de conteúdo com um clique, ideal para serviços e cronogramas.</td>
+          </tr>
+          <tr>
+            <td><strong>8. Dicas Flutuantes (Tooltips)</strong></td>
+            <td><code>grapesjs-tooltip</code></td>
+            <td>Balões com dicas explicativas e informativas que surgem suavemente ao passar o mouse sobre botões ou ícones.</td>
+          </tr>
+          <tr>
+            <td><strong>9. Editor de Texto Rico (CKEditor)</strong></td>
+            <td><code>grapesjs-plugin-ckeditor</code></td>
+            <td>Barra flutuante moderna com formatação de negrito, itálico, alinhamento, listas e tamanhos ao dar clique duplo no texto.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 class="sub-heading">Como Adicionar um Novo Plugin da Comunidade</h3>
+      <ol style="margin-left: 20px; margin-bottom: 20px;">
+        <li style="margin-bottom: 8px;">No painel de Plugins, clique no botão roxo destacado <strong>"+ Adicionar Plugin"</strong> no topo direito.</li>
+        <li style="margin-bottom: 8px;">Preencha o <strong>Nome Amigável</strong> (exemplo: <em>Compartilhar em Redes Sociais</em>).</li>
+        <li style="margin-bottom: 8px;">Informe o <strong>Nome do Pacote</strong> (exemplo: <code>grapesjs-plugin-social</code>).</li>
+        <li style="margin-bottom: 8px;">Selecione a <strong>Categoria</strong> correspondente (Estrutura, Formulários, Mídia, Estilos ou Outros).</li>
+        <li style="margin-bottom: 8px;">Informe a <strong>URL do CDN</strong> (exemplo: <code>https://unpkg.com/grapesjs-plugin-social@latest</code>).</li>
+        <li style="margin-bottom: 8px;">Clique em <strong>"Cadastrar Plugin"</strong>. O módulo será registrado e ativado automaticamente no sistema!</li>
+      </ol>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div>
+          <strong>Dica Prática para Organização:</strong> Se você não for utilizar recursos avançados de formulários ou cronômetros em seu projeto, basta desligar a chave correspondente no painel de Plugins. Isso faz com que a barra lateral de blocos fique muito mais enxuta, facilitando o trabalho da sua equipe!
+        </div>
+      </div>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div>
+          <strong>Atenção:</strong> Após ativar ou desativar qualquer plugin, salve as alterações na página que estiver editando e recarregue a aba do navegador para que o GrapesJS inicialize os novos blocos na barra lateral.
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--text-light); font-size: 13px;">
+        Manual do Usuário Final — Construtor Visual Web © 2026. Todos os direitos reservados.
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

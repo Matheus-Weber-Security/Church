@@ -61,7 +61,10 @@ app.get('/api/health', (req, res) => {
 
 // Servir a Apostila/Manual do Usuário em HTML/PDF
 app.get('/manual', (req, res) => {
-  res.sendFile(path.resolve(__dirname, '../../manual_do_usuario.html'));
+  const localManual = path.resolve(__dirname, '../manual_do_usuario.html');
+  const rootManual = path.resolve(__dirname, '../../manual_do_usuario.html');
+  const fileToSend = require('fs').existsSync(localManual) ? localManual : rootManual;
+  res.sendFile(fileToSend);
 });
 
 // Inicialização do servidor após carregar tabelas do banco

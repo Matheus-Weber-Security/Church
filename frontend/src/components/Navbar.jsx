@@ -72,7 +72,7 @@ export const Navbar = ({ activeTab, setActiveTab, onNavigateHome }) => {
 
       <div className="nav-user-controls">
         <a
-          href="http://localhost:5000/manual"
+          href="/manual.html"
           target="_blank"
           rel="noopener noreferrer"
           className="nav-btn"

@@ -18,13 +18,21 @@ const PORT = process.env.PORT || 5000;
 
 // Middlewares globais
 app.use(cors({
-  origin: '*', // Permite conexão do frontend em qualquer porta Vite
-  credentials: true
+  origin: true, // Permite dinamicamente a origem que fizer a requisição
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+app.options('*', cors());
+
 app.use(express.json({ limit: '10mb' }));
 
-// Servir arquivos estáticos de uploads de imagens
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Servir arquivos estáticos de uploads de imagens com suporte a CORS
+app.use('/uploads', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  next();
+}, express.static(path.join(__dirname, '../uploads')));
 
 // Rotas da API
 app.use('/api/auth', authRoutes);

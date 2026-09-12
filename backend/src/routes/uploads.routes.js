@@ -90,11 +90,24 @@ router.post(
   '/',
   authMiddleware,
   roleMiddleware(['admin', 'editor']),
-  upload.array('files', 15),
+  (req, res, next) => {
+    upload.any()(req, res, (err) => {
+      if (err) {
+        if (err instanceof multer.MulterError) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ error: 'Arquivo muito grande. O limite máximo é de 15MB por foto.' });
+          }
+          return res.status(400).json({ error: `Erro no upload: ${err.message}` });
+        }
+        return res.status(400).json({ error: err.message || 'Erro ao processar imagem.' });
+      }
+      next();
+    });
+  },
   (req, res) => {
     try {
       if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+        return res.status(400).json({ error: 'Nenhum arquivo de imagem foi enviado.' });
       }
 
       const host = req.get('host');
@@ -104,22 +117,19 @@ router.post(
         const url = `${protocol}://${host}/uploads/${file.filename}`;
         return {
           src: url,
-          name: file.filename,
+          name: file.originalname || file.filename,
           type: 'image'
         };
       });
 
-      const uploadedUrls = uploadedAssets.map((a) => a.src);
-
-      // Retorna em formatos flexíveis aceitos pelo GrapesJS
       return res.json({
-        data: uploadedUrls,
+        data: uploadedAssets,
         assets: uploadedAssets,
         message: `${req.files.length} imagem(ns) enviada(s) com sucesso.`
       });
     } catch (error) {
       console.error('Erro no upload de imagem:', error);
-      return res.status(500).json({ error: 'Erro ao salvar arquivo.' });
+      return res.status(500).json({ error: 'Erro interno ao salvar arquivo no servidor.' });
     }
   }
 );

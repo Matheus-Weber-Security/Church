@@ -33,12 +33,17 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '10mb' }));
 
+const uploadDir = process.env.UPLOADS_PATH || path.resolve(__dirname, '../uploads');
+if (!require('fs').existsSync(uploadDir)) {
+  require('fs').mkdirSync(uploadDir, { recursive: true });
+}
+
 // Servir arquivos estáticos de uploads de imagens com suporte a CORS
 app.use('/uploads', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
   next();
-}, express.static(path.join(__dirname, '../uploads')));
+}, express.static(uploadDir));
 
 // Rotas da API
 app.use('/api/auth', authRoutes);

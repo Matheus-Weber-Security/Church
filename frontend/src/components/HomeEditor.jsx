@@ -43,6 +43,30 @@ export const HomeEditor = () => {
   // Modo Preview e Alternador de Lápis
   const [isPreviewActive, setIsPreviewActive] = useState(false);
 
+  // Sistema de Notificações / Toast Popups Flutuantes (Erros, Sucesso e Avisos do Editor e Uploads)
+  const [toastNotification, setToastNotification] = useState(null);
+
+  const showToast = (type, message, title = null, duration = 6000) => {
+    const id = Date.now();
+    let defaultTitle = 'Aviso';
+    if (type === 'error') defaultTitle = 'Erro no Upload ou Editor';
+    if (type === 'success') defaultTitle = 'Sucesso';
+    if (type === 'loading') defaultTitle = 'Processando...';
+
+    setToastNotification({
+      id,
+      type,
+      title: title || defaultTitle,
+      message
+    });
+
+    if (duration > 0 && type !== 'loading') {
+      setTimeout(() => {
+        setToastNotification((prev) => (prev && prev.id === id ? null : prev));
+      }, duration);
+    }
+  };
+
   // Estados de Carregamento com Porcentagem
   const [editorLoading, setEditorLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(15);
@@ -220,7 +244,64 @@ export const HomeEditor = () => {
         multiUpload: true,
         autoAdd: 1,
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-        modalTitle: 'Galeria de Imagens e Upload'
+        modalTitle: 'Galeria de Imagens e Upload de Fotos',
+        dropzoneContent: '<div style="text-align:center;padding:28px 15px;cursor:pointer;"><svg style="width:42px;height:42px;margin:0 auto 12px;color:#60a5fa;display:block;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><div style="font-weight:700;font-size:15px;color:#f3f4f6;margin-bottom:6px;">Arraste fotos aqui ou clique para selecionar</div><div style="font-size:12px;color:#9ca3af;">Formatos: PNG, JPG, JPEG, WEBP, GIF, SVG (máx. 15MB por foto)</div></div>',
+        uploadFile: async (e) => {
+          const files = e.dataTransfer ? e.dataTransfer.files : (e.target ? e.target.files : (e.files || e));
+          if (!files || files.length === 0) return;
+
+          const fileList = Array.from(files);
+          
+          for (const f of fileList) {
+            if (f.size > 15 * 1024 * 1024) {
+              showToast('error', `O arquivo "${f.name}" (${(f.size / (1024 * 1024)).toFixed(1)}MB) excede o limite máximo permitido de 15MB.`, 'Arquivo Muito Grande');
+              return;
+            }
+          }
+
+          showToast('loading', `Enviando ${fileList.length} imagem(ns) para o servidor...`, 'Fazendo Upload');
+
+          try {
+            const formData = new FormData();
+            fileList.forEach((file) => {
+              formData.append('files', file);
+            });
+
+            const currentToken = getAuthToken();
+            const headers = {};
+            if (currentToken) {
+              headers['Authorization'] = `Bearer ${currentToken}`;
+            }
+
+            const response = await fetch(`${BASE_URL}/uploads`, {
+              method: 'POST',
+              headers,
+              body: formData
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+              const errMsg = data.error || (response.status === 401 ? 'Sessão expirada. Faça login novamente no sistema.' : `Erro HTTP ${response.status} ao salvar foto.`);
+              showToast('error', errMsg, 'Falha no Upload de Imagem');
+              return;
+            }
+
+            const newAssets = data.assets || data.data || [];
+            if (editor && editor.AssetManager) {
+              editor.AssetManager.add(newAssets);
+            }
+
+            showToast('success', `${fileList.length} imagem(ns) adicionada(s) à galeria com sucesso!`, 'Upload Concluído');
+
+            if (editor) {
+              await loadExistingAssets(editor);
+            }
+          } catch (err) {
+            console.error('Erro na requisição de upload:', err);
+            showToast('error', `Erro de conexão com o servidor: ${err.message}. Verifique sua conexão ou se o backend está online.`, 'Erro de Conexão');
+          }
+        }
       },
       deviceManager: {
         devices: [
@@ -556,6 +637,17 @@ export const HomeEditor = () => {
     editor.on('run:core:preview', () => setIsPreviewActive(true));
     editor.on('stop:core:preview', () => setIsPreviewActive(false));
 
+    // Escuta erros de upload e eventos da galeria de fotos
+    editor.on('asset:upload:error', (err) => {
+      const msg = typeof err === 'string' ? err : (err?.message || JSON.stringify(err));
+      showToast('error', `Erro na galeria: ${msg}`, 'Erro de Upload');
+    });
+
+    // Recarrega galeria de fotos sempre que abrir a galeria no editor
+    editor.on('run:open-assets', async () => {
+      await loadExistingAssets(editor);
+    });
+
     // Executa carregamento inicial
     await loadPagesList();
     await loadPageContent(editor, 'home');
@@ -728,8 +820,9 @@ export const HomeEditor = () => {
     setActiveDevice(deviceType);
   };
 
-  const handleOpenAssetManager = () => {
+  const handleOpenAssetManager = async () => {
     if (!editorRef.current) return;
+    await loadExistingAssets(editorRef.current);
     editorRef.current.runCommand('open-assets');
   };
 
@@ -1083,6 +1176,105 @@ export const HomeEditor = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Pop-up Flutuante de Notificação / Erro / Sucesso com Alta Visibilidade */}
+      {toastNotification && (
+        <div
+          id="toast-notification-popup"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 99999999,
+            maxWidth: '440px',
+            minWidth: '320px',
+            backgroundColor:
+              toastNotification.type === 'error'
+                ? '#241013'
+                : toastNotification.type === 'success'
+                ? '#0d2818'
+                : '#131b2e',
+            border: `1px solid ${
+              toastNotification.type === 'error'
+                ? '#ef4444'
+                : toastNotification.type === 'success'
+                ? '#10b981'
+                : '#3b82f6'
+            }`,
+            borderRadius: '10px',
+            padding: '14px 16px',
+            boxShadow: '0 12px 36px rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            animation: 'fadeIn 0.25s ease-out'
+          }}
+        >
+          <div style={{ marginTop: '2px', flexShrink: 0 }}>
+            {toastNotification.type === 'error' && <AlertCircle size={22} color="#ef4444" />}
+            {toastNotification.type === 'success' && <CheckCircle2 size={22} color="#10b981" />}
+            {toastNotification.type === 'loading' && (
+              <div
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  border: '2px solid #3b82f6',
+                  borderTopColor: 'transparent',
+                  animation: 'spin 0.8s linear infinite'
+                }}
+              />
+            )}
+            {toastNotification.type === 'info' && <AlertCircle size={22} color="#60a5fa" />}
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <div
+              style={{
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                color:
+                  toastNotification.type === 'error'
+                    ? '#fca5a5'
+                    : toastNotification.type === 'success'
+                    ? '#86efac'
+                    : '#93c5fd',
+                marginBottom: '4px'
+              }}
+            >
+              {toastNotification.title}
+            </div>
+            <div
+              style={{
+                fontSize: '0.82rem',
+                color: '#e2e8f0',
+                lineHeight: 1.4,
+                wordBreak: 'break-word'
+              }}
+            >
+              {toastNotification.message}
+            </div>
+          </div>
+
+          <button
+            onClick={() => setToastNotification(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#9ca3af',
+              cursor: 'pointer',
+              padding: '2px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '4px'
+            }}
+            title="Fechar"
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
     </div>

@@ -28,7 +28,8 @@ import {
   Image as ImageIcon,
   Sparkles,
   Layers,
-  X
+  X,
+  Pencil
 } from 'lucide-react';
 
 export const HomeEditor = () => {
@@ -38,6 +39,9 @@ export const HomeEditor = () => {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [activeDevice, setActiveDevice] = useState('desktop');
+
+  // Modo Preview e Alternador de Lápis
+  const [isPreviewActive, setIsPreviewActive] = useState(false);
 
   // Estados de Carregamento com Porcentagem
   const [editorLoading, setEditorLoading] = useState(true);
@@ -546,6 +550,12 @@ export const HomeEditor = () => {
       }
     });
 
+    // Escuta modo Preview para alternar para o botão de Lápis
+    editor.on('run:preview', () => setIsPreviewActive(true));
+    editor.on('stop:preview', () => setIsPreviewActive(false));
+    editor.on('run:core:preview', () => setIsPreviewActive(true));
+    editor.on('stop:core:preview', () => setIsPreviewActive(false));
+
     // Executa carregamento inicial
     await loadPagesList();
     await loadPageContent(editor, 'home');
@@ -569,6 +579,27 @@ export const HomeEditor = () => {
     }
   };
 }, []);
+
+  // Atalho do Teclado ESC para sair do modo Preview
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isPreviewActive && editorRef.current) {
+        editorRef.current.Commands.stop('preview');
+        editorRef.current.Commands.stop('core:preview');
+        setIsPreviewActive(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPreviewActive]);
+
+  // Função para sair do preview e voltar para edição
+  const handleExitPreview = () => {
+    if (!editorRef.current) return;
+    editorRef.current.Commands.stop('preview');
+    editorRef.current.Commands.stop('core:preview');
+    setIsPreviewActive(false);
+  };
 
   // Alternar entre páginas no editor
   const handleSelectPage = async (newSlug) => {
@@ -960,6 +991,38 @@ export const HomeEditor = () => {
             </span>
           </div>
         )}
+        {/* Botão de Lápis que surge no local exato do Olho durante o Preview */}
+        {isPreviewActive && (
+          <button
+            id="btn-exit-preview"
+            onClick={handleExitPreview}
+            style={{
+              position: 'absolute',
+              top: '6px',
+              right: '185px',
+              zIndex: 999999,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              height: '32px',
+              padding: '0 12px',
+              borderRadius: '6px',
+              backgroundColor: '#181822',
+              border: '1px solid #3b82f6',
+              color: '#60a5fa',
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.8)',
+              transition: 'all 0.2s ease',
+              animation: 'fadeIn 0.2s ease-out'
+            }}
+            title="Voltar para Edição (ou pressione ESC)"
+          >
+            <Pencil size={15} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Editar</span>
+          </button>
+        )}
+
         <div ref={containerRef} id="gjs" style={{ height: '100%', width: '100%' }} />
       </div>
 

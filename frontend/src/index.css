@@ -698,3 +698,20 @@ body {
     padding: 2rem 1.25rem;
   }
 }
+
+/* ==========================================
+   GRAPESJS RESPONSIVE CANVAS & FRAME STYLING
+   ========================================== */
+.gjs-cv-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+}
+
+.gjs-frame {
+  margin: 0 auto !important;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
+}

@@ -486,6 +486,33 @@ export const HomeEditor = () => {
       `
     });
 
+    // Garante que os dispositivos padrão existam e tenham as larguras responsivas
+    const dm = editor.Devices;
+    const existingDevices = dm.getAll();
+    if (!existingDevices.find(d => (d.get('id') || '').toLowerCase().includes('desktop'))) {
+      dm.add({ id: 'desktop', name: 'Desktop', width: '' });
+    }
+    if (!existingDevices.find(d => (d.get('id') || '').toLowerCase().includes('tablet'))) {
+      dm.add({ id: 'tablet', name: 'Tablet', width: '768px', widthMedia: '768px' });
+    }
+    if (!existingDevices.find(d => (d.get('id') || '').toLowerCase().includes('mobile'))) {
+      dm.add({ id: 'mobile', name: 'Mobile', width: '375px', widthMedia: '375px' });
+    }
+
+    // Escuta mudança de dispositivo no GrapesJS para sincronizar os botões da barra superior
+    editor.on('change:device', () => {
+      const currentDevice = editor.getDevice();
+      if (!currentDevice) return;
+      const idOrName = (typeof currentDevice === 'string' ? currentDevice : currentDevice.get ? (currentDevice.get('id') || currentDevice.get('name')) : currentDevice.id || '').toLowerCase();
+      if (idOrName.includes('mobile') || idOrName.includes('phone') || idOrName.includes('portrait')) {
+        setActiveDevice('mobile');
+      } else if (idOrName.includes('tablet')) {
+        setActiveDevice('tablet');
+      } else {
+        setActiveDevice('desktop');
+      }
+    });
+
     // Executa carregamento inicial
     await loadPagesList();
     await loadPageContent(editor, 'home');
@@ -609,10 +636,32 @@ export const HomeEditor = () => {
     }
   };
 
-  const handleDeviceChange = (device) => {
+  const handleDeviceChange = (deviceType) => {
     if (!editorRef.current) return;
-    editorRef.current.setDevice(device);
-    setActiveDevice(device);
+    const dm = editorRef.current.Devices;
+    const all = dm.getAll();
+    
+    // Procura o dispositivo correto pelo ID ou nome
+    let target = all.find(d => {
+      const id = (d.get('id') || d.id || '').toLowerCase();
+      const name = (d.get('name') || d.name || '').toLowerCase();
+      if (deviceType === 'desktop') return id.includes('desktop') || name.includes('desktop');
+      if (deviceType === 'tablet') return id.includes('tablet') || name.includes('tablet');
+      if (deviceType === 'mobile') return id.includes('mobile') || name.includes('mobile') || id.includes('phone') || id.includes('portrait');
+      return false;
+    });
+
+    if (!target && deviceType === 'mobile') {
+      target = dm.add({ id: 'mobile', name: 'Mobile', width: '375px', widthMedia: '375px' });
+    }
+
+    if (target) {
+      const targetId = target.get ? target.get('id') : target.id;
+      editorRef.current.setDevice(targetId);
+    } else {
+      editorRef.current.setDevice(deviceType);
+    }
+    setActiveDevice(deviceType);
   };
 
   const handleOpenAssetManager = () => {

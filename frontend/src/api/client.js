@@ -2,7 +2,7 @@
  * Cliente HTTP para a API REST do Church
  */
 const API_ORIGIN = import.meta.env.VITE_API_URL || '';
-const BASE_URL = API_ORIGIN ? (API_ORIGIN.endsWith('/') ? `${API_ORIGIN.slice(0, -1)}/api` : `${API_ORIGIN}/api`) : '/api';
+export const BASE_URL = API_ORIGIN ? (API_ORIGIN.endsWith('/') ? `${API_ORIGIN.slice(0, -1)}/api` : `${API_ORIGIN}/api`) : '/api';
 
 export const getAuthToken = () => {
   return localStorage.getItem('church_token');

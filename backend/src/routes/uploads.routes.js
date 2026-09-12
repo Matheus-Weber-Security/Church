@@ -6,11 +6,19 @@ const fs = require('fs');
 const authMiddleware = require('../middleware/auth');
 const roleMiddleware = require('../middleware/roles');
 
-const uploadDir = path.resolve(__dirname, '../../uploads');
+const uploadDir = process.env.UPLOADS_PATH || path.resolve(__dirname, '../../uploads');
+
+// Garante que o diretório de uploads exista na inicialização
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // Configuração de armazenamento com nomes únicos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
@@ -35,7 +43,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // Limite de 10MB por foto
+  limits: { fileSize: 15 * 1024 * 1024 } // Limite de 15MB por foto
 });
 
 /**
@@ -44,9 +52,12 @@ const upload = multer({
  */
 router.get('/', (req, res) => {
   try {
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
     const files = fs.readdirSync(uploadDir);
     const host = req.get('host');
-    const protocol = req.protocol;
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
 
     const assets = files
       .filter((file) => {
@@ -79,7 +90,7 @@ router.post(
   '/',
   authMiddleware,
   roleMiddleware(['admin', 'editor']),
-  upload.array('files', 10),
+  upload.array('files', 15),
   (req, res) => {
     try {
       if (!req.files || req.files.length === 0) {
@@ -87,15 +98,23 @@ router.post(
       }
 
       const host = req.get('host');
-      const protocol = req.protocol;
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
 
-      const uploadedUrls = req.files.map((file) => {
-        return `${protocol}://${host}/uploads/${file.filename}`;
+      const uploadedAssets = req.files.map((file) => {
+        const url = `${protocol}://${host}/uploads/${file.filename}`;
+        return {
+          src: url,
+          name: file.filename,
+          type: 'image'
+        };
       });
 
-      // O GrapesJS aceita { data: [ 'url1', 'url2' ] } ou array de assets
+      const uploadedUrls = uploadedAssets.map((a) => a.src);
+
+      // Retorna em formatos flexíveis aceitos pelo GrapesJS
       return res.json({
         data: uploadedUrls,
+        assets: uploadedAssets,
         message: `${req.files.length} imagem(ns) enviada(s) com sucesso.`
       });
     } catch (error) {

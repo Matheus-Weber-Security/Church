@@ -10,7 +10,7 @@ import gjsCountdown from 'grapesjs-component-countdown';
 import gjsTabs from 'grapesjs-tabs';
 import gjsTooltip from 'grapesjs-tooltip';
 import gjsCkeditor from 'grapesjs-plugin-ckeditor';
-import { api, getAuthToken } from '../api/client';
+import { api, getAuthToken, BASE_URL } from '../api/client';
 import {
   Save,
   Monitor,
@@ -215,7 +215,7 @@ export const HomeEditor = () => {
           }
         },
       assetManager: {
-        upload: '/api/uploads',
+        upload: `${BASE_URL}/uploads`,
         uploadName: 'files',
         multiUpload: true,
         autoAdd: 1,

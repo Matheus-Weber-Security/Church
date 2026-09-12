@@ -39,6 +39,11 @@ export const HomeEditor = () => {
   const [saveStatus, setSaveStatus] = useState(null);
   const [activeDevice, setActiveDevice] = useState('desktop');
 
+  // Estados de Carregamento com Porcentagem
+  const [editorLoading, setEditorLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(15);
+  const [loadingStatusText, setLoadingStatusText] = useState('Iniciando o estúdio visual...');
+
   // Gerenciamento de Múltiplas Páginas
   const [pages, setPages] = useState([{ slug: 'home', title: 'Home' }]);
   const [currentPage, setCurrentPage] = useState('home');
@@ -104,6 +109,10 @@ export const HomeEditor = () => {
     let editor = null;
 
     const setupEditor = async () => {
+      setLoadingProgress(25);
+      setLoadingStatusText('Carregando páginas e layout...');
+      await loadPagesList();
+
       // 1. Consulta plugins ativos no SQLite
       let activePluginsList = [];
       const builtInMap = {
@@ -118,16 +127,33 @@ export const HomeEditor = () => {
         'grapesjs-plugin-ckeditor': gjsCkeditor
       };
 
+      setLoadingProgress(50);
+      setLoadingStatusText('Carregando biblioteca de plugins...');
+
       try {
         const pluginsRes = await api.getPlugins();
         const enabled = (pluginsRes.plugins || []).filter((p) => p.is_enabled === 1);
-        enabled.forEach((p) => {
+        
+        for (const p of enabled) {
           if (builtInMap[p.package_name]) {
             activePluginsList.push(builtInMap[p.package_name]);
-          } else if (p.cdn_url) {
+          } else if (p.cdn_url && p.cdn_url.trim()) {
+            // Carregamento dinâmico de script CDN
+            await new Promise((resolve) => {
+              if (document.querySelector(`script[src="${p.cdn_url.trim()}"]`)) return resolve();
+              const script = document.createElement('script');
+              script.src = p.cdn_url.trim();
+              script.async = true;
+              script.onload = () => resolve();
+              script.onerror = () => {
+                console.warn(`Não foi possível carregar CDN: ${p.cdn_url}`);
+                resolve();
+              };
+              document.head.appendChild(script);
+            });
             activePluginsList.push(p.package_name);
           }
-        });
+        }
       } catch (e) {
         activePluginsList = Object.values(builtInMap);
       }
@@ -135,6 +161,9 @@ export const HomeEditor = () => {
       if (activePluginsList.length === 0) {
         activePluginsList.push(gjsPresetWebpage);
       }
+
+      setLoadingProgress(75);
+      setLoadingStatusText('Inicializando ferramentas e blocos...');
 
       // 2. Inicialização do GrapesJS Studio com os plugins ativos
       const token = getAuthToken();
@@ -380,7 +409,52 @@ export const HomeEditor = () => {
       `
     });
 
-    // 6. Rodapé
+    // 6. Carrossel / Slider de Fotos
+    blockManager.add('church-photo-carousel', {
+      label: `
+        <div style="text-align: center;">
+          <svg style="width:28px;height:28px;margin:0 auto 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          <div style="font-size:11px;font-weight:600;">Carrossel de Fotos</div>
+        </div>
+      `,
+      category: 'Mídia & Dinâmico',
+      content: `
+        <section class="church-carousel-section" style="padding: 3.5rem 1.5rem; background-color: #0c0c0e; font-family: 'Inter', sans-serif;">
+          <div style="max-width: 1100px; margin: 0 auto; text-align: center;">
+            <h2 style="color: #ffffff; font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">Galeria de Momentos & Eventos</h2>
+            <p style="color: #a1a1aa; font-size: 1.05rem; margin-bottom: 2rem;">Confira os registros das nossas celebrações e atividades</p>
+            
+            <div style="display: flex; gap: 1.5rem; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 1.25rem; scrollbar-width: thin;">
+              <div style="flex: 0 0 320px; scroll-snap-align: start; background-color: #18181b; border: 1px solid #27272a; border-radius: 12px; overflow: hidden; text-align: left;">
+                <img src="https://images.unsplash.com/photo-1519817650390-64a93db51149?w=600&auto=format&fit=crop&q=80" alt="Culto de Domingo" style="width: 100%; height: 220px; object-fit: cover; display: block;" />
+                <div style="padding: 1.25rem;">
+                  <h3 style="color: #ffffff; font-size: 1.15rem; font-weight: 600; margin-bottom: 0.35rem;">Culto de Celebração</h3>
+                  <p style="color: #a1a1aa; font-size: 0.88rem; line-height: 1.5;">Domingo às 10h e 19h com louvor, ministração e comunhão.</p>
+                </div>
+              </div>
+
+              <div style="flex: 0 0 320px; scroll-snap-align: start; background-color: #18181b; border: 1px solid #27272a; border-radius: 12px; overflow: hidden; text-align: left;">
+                <img src="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=600&auto=format&fit=crop&q=80" alt="Conferência" style="width: 100%; height: 220px; object-fit: cover; display: block;" />
+                <div style="padding: 1.25rem;">
+                  <h3 style="color: #ffffff; font-size: 1.15rem; font-weight: 600; margin-bottom: 0.35rem;">Conferência de Jovens</h3>
+                  <p style="color: #a1a1aa; font-size: 0.88rem; line-height: 1.5;">Encontro especial com ministração, palestras e dinâmicas.</p>
+                </div>
+              </div>
+
+              <div style="flex: 0 0 320px; scroll-snap-align: start; background-color: #18181b; border: 1px solid #27272a; border-radius: 12px; overflow: hidden; text-align: left;">
+                <img src="https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=600&auto=format&fit=crop&q=80" alt="Ação Social" style="width: 100%; height: 220px; object-fit: cover; display: block;" />
+                <div style="padding: 1.25rem;">
+                  <h3 style="color: #ffffff; font-size: 1.15rem; font-weight: 600; margin-bottom: 0.35rem;">Ação Social Comunitária</h3>
+                  <p style="color: #a1a1aa; font-size: 0.88rem; line-height: 1.5;">Entrega de cestas básicas e apoio às famílias da nossa região.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      `
+    });
+
+    // 7. Rodapé
     blockManager.add('church-footer', {
       label: `
         <div style="text-align: center;">
@@ -413,12 +487,18 @@ export const HomeEditor = () => {
     });
 
     // Executa carregamento inicial
-    loadPagesList();
-    loadPageContent(editor, 'home');
-    loadExistingAssets(editor);
+    await loadPagesList();
+    await loadPageContent(editor, 'home');
+    await loadExistingAssets(editor);
 
     setEditorInstance(editor);
     editorRef.current = editor;
+
+    setLoadingProgress(100);
+    setLoadingStatusText('✔ Pronto para editar!');
+    setTimeout(() => {
+      setEditorLoading(false);
+    }, 350);
   };
 
   setupEditor();
@@ -756,6 +836,48 @@ export const HomeEditor = () => {
 
       {/* Canvas do GrapesJS */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        {editorLoading && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: '#121217',
+            zIndex: 100,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '1rem'
+          }}>
+            <div style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '50%',
+              border: '3px solid #272736',
+              borderTopColor: '#3b82f6',
+              animation: 'spin 1s linear infinite'
+            }} />
+            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ffffff' }}>
+              {loadingStatusText}
+            </div>
+            <div style={{
+              width: '280px',
+              height: '8px',
+              backgroundColor: '#272736',
+              borderRadius: '4px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                width: `${loadingProgress}%`,
+                height: '100%',
+                backgroundColor: '#3b82f6',
+                transition: 'width 0.3s ease'
+              }} />
+            </div>
+            <span style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 600 }}>
+              {loadingProgress}% concluído
+            </span>
+          </div>
+        )}
         <div ref={containerRef} id="gjs" style={{ height: '100%', width: '100%' }} />
       </div>
 

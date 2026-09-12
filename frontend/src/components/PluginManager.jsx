@@ -62,10 +62,61 @@ export const PluginManager = () => {
     }
   };
 
+  const [validating, setValidating] = useState(false);
+  const [validationProgress, setValidationProgress] = useState(0);
+  const [validationStatusText, setValidationStatusText] = useState('');
+  const [validationError, setValidationError] = useState('');
+
   const handleCreatePlugin = async (e) => {
     e.preventDefault();
+    setValidationError('');
+    setValidating(true);
+    setValidationProgress(15);
+    setValidationStatusText('Iniciando validação do plugin...');
+
     try {
+      // Se houver URL do CDN, valida se o script é acessível antes de ativar
+      if (newPlugin.cdn_url && newPlugin.cdn_url.trim()) {
+        const cleanUrl = newPlugin.cdn_url.trim();
+        setValidationProgress(40);
+        setValidationStatusText('Testando conexão com o servidor CDN...');
+
+        await new Promise((resolve, reject) => {
+          const testScript = document.createElement('script');
+          testScript.src = cleanUrl;
+          testScript.async = true;
+          const timeout = setTimeout(() => {
+            testScript.remove();
+            reject(new Error('Tempo limite excedido ao tentar conectar ao CDN.'));
+          }, 8000);
+
+          testScript.onload = () => {
+            clearTimeout(timeout);
+            resolve();
+          };
+          testScript.onerror = () => {
+            clearTimeout(timeout);
+            testScript.remove();
+            reject(new Error('A URL do CDN não é válida ou o script está inacessível.'));
+          };
+          document.head.appendChild(testScript);
+        });
+
+        setValidationProgress(75);
+        setValidationStatusText('Script validado com sucesso! Integrando ao editor...');
+      } else {
+        setValidationProgress(60);
+        setValidationStatusText('Registrando configurações do pacote...');
+      }
+
+      setValidationProgress(90);
+      setValidationStatusText('Gravando no banco de dados...');
       await api.createPlugin(newPlugin);
+
+      setValidationProgress(100);
+      setValidationStatusText('✔ Plugin ativado com 100% de sucesso!');
+      await new Promise((r) => setTimeout(r, 600));
+
       setIsModalOpen(false);
       setNewPlugin({
         name: '',
@@ -75,9 +126,12 @@ export const PluginManager = () => {
         cdn_url: ''
       });
       await loadPlugins();
-      alert('Plugin cadastrado com sucesso!');
     } catch (err) {
-      alert(err.message || 'Erro ao cadastrar plugin.');
+      setValidationError(err.message || 'Erro ao cadastrar ou validar o plugin.');
+    } finally {
+      setValidating(false);
+      setValidationProgress(0);
+      setValidationStatusText('');
     }
   };
 
@@ -434,12 +488,59 @@ export const PluginManager = () => {
                 />
               </div>
 
+              {validationError && (
+                <div className="alert-error" style={{ fontSize: '0.85rem' }}>
+                  {validationError}
+                </div>
+              )}
+
+              {validating && (
+                <div style={{
+                  backgroundColor: '#181820',
+                  border: '1px solid #3b82f6',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem' }}>
+                    <span style={{ color: '#93c5fd', fontWeight: 600 }}>{validationStatusText}</span>
+                    <span style={{ color: '#3b82f6', fontWeight: 700 }}>{validationProgress}%</span>
+                  </div>
+                  <div style={{
+                    width: '100%',
+                    height: '8px',
+                    backgroundColor: '#272736',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: `${validationProgress}%`,
+                      height: '100%',
+                      backgroundColor: '#3b82f6',
+                      transition: 'width 0.3s ease'
+                    }} />
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={validating}
+                >
                   Cancelar
                 </button>
-                <button type="submit" className="btn-accent">
-                  Cadastrar Plugin
+                <button
+                  type="submit"
+                  className="btn-accent"
+                  disabled={validating}
+                  style={{ minWidth: '160px' }}
+                >
+                  {validating ? `Validando (${validationProgress}%)...` : 'Cadastrar Plugin'}
                 </button>
               </div>
             </form>

@@ -16,14 +16,20 @@ const aiRoutes = require('./routes/ai.routes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middlewares globais
-app.use(cors({
-  origin: true, // Permite dinamicamente a origem que fizer a requisição
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
-}));
-app.options('*', cors());
+// Middlewares globais - Configuração universal de CORS e Preflight OPTIONS
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '*';
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Responde imediatamente a qualquer requisição Preflight OPTIONS
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
 
 app.use(express.json({ limit: '10mb' }));
 
@@ -60,7 +66,7 @@ app.get('/manual', (req, res) => {
 
 // Inicialização do servidor após carregar tabelas do banco
 initDatabase().then(() => {
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`=============================================`);
     console.log(`🚀 Servidor Church Backend rodando na porta ${PORT}`);
     console.log(`🔗 API Base: http://localhost:${PORT}/api`);

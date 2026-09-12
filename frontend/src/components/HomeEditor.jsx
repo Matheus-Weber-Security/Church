@@ -486,18 +486,51 @@ export const HomeEditor = () => {
       `
     });
 
-    // Garante que os dispositivos padrão existam e tenham as larguras responsivas
+    // Garante que TODOS os dispositivos (inclusive os nativos da barra esquerda) tenham larguras físicas configuradas
     const dm = editor.Devices;
+    dm.getAll().forEach((device) => {
+      const id = (device.get('id') || device.id || '').toLowerCase();
+      const name = (device.get('name') || device.name || '').toLowerCase();
+      
+      if (id.includes('mobile') || id.includes('portrait') || id.includes('phone') || name.includes('mobile')) {
+        device.set({ width: '375px', widthMedia: '375px' });
+      } else if (id.includes('tablet') || name.includes('tablet')) {
+        device.set({ width: '768px', widthMedia: '768px' });
+      } else if (id.includes('desktop') || name.includes('desktop')) {
+        device.set({ width: '', widthMedia: '' });
+      }
+    });
+
     const existingDevices = dm.getAll();
-    if (!existingDevices.find(d => (d.get('id') || '').toLowerCase().includes('desktop'))) {
+    if (!existingDevices.find(d => (d.get('id') || '').toLowerCase() === 'desktop')) {
       dm.add({ id: 'desktop', name: 'Desktop', width: '' });
     }
-    if (!existingDevices.find(d => (d.get('id') || '').toLowerCase().includes('tablet'))) {
+    if (!existingDevices.find(d => (d.get('id') || '').toLowerCase() === 'tablet')) {
       dm.add({ id: 'tablet', name: 'Tablet', width: '768px', widthMedia: '768px' });
     }
-    if (!existingDevices.find(d => (d.get('id') || '').toLowerCase().includes('mobile'))) {
+    if (!existingDevices.find(d => (d.get('id') || '').toLowerCase() === 'mobile')) {
       dm.add({ id: 'mobile', name: 'Mobile', width: '375px', widthMedia: '375px' });
     }
+
+    // Sobrescreve os comandos dos botões nativos da esquerda para garantir 375px no celular e 768px no tablet
+    editor.Commands.add('set-device-mobile', {
+      run(ed) {
+        const target = ed.Devices.getAll().find(d => (d.get('id') || '').toLowerCase().includes('mobile') || (d.get('id') || '').toLowerCase().includes('portrait'));
+        ed.setDevice(target ? target.get('id') : 'mobile');
+      }
+    });
+    editor.Commands.add('set-device-tablet', {
+      run(ed) {
+        const target = ed.Devices.getAll().find(d => (d.get('id') || '').toLowerCase().includes('tablet'));
+        ed.setDevice(target ? target.get('id') : 'tablet');
+      }
+    });
+    editor.Commands.add('set-device-desktop', {
+      run(ed) {
+        const target = ed.Devices.getAll().find(d => (d.get('id') || '').toLowerCase().includes('desktop'));
+        ed.setDevice(target ? target.get('id') : 'desktop');
+      }
+    });
 
     // Escuta mudança de dispositivo no GrapesJS para sincronizar os botões da barra superior
     editor.on('change:device', () => {

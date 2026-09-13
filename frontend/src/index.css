@@ -703,15 +703,48 @@ body {
    GRAPESJS RESPONSIVE CANVAS & FRAME STYLING
    ========================================== */
 .gjs-cv-canvas {
+  box-sizing: border-box !important;
+  width: calc(100% - var(--gjs-left-width, 0%)) !important;
+  height: calc(100% - var(--gjs-canvas-top, 40px)) !important;
+  top: var(--gjs-canvas-top, 40px) !important;
+  bottom: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  left: 0 !important;
+}
+
+.gjs-cv-canvas__frames,
+.gjs-frames {
   width: 100% !important;
   height: 100% !important;
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+}
+
+.gjs-frame-wrapper {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin: auto !important;
   display: flex !important;
   justify-content: center !important;
-  align-items: flex-start !important;
+  height: 100% !important;
 }
 
 .gjs-frame {
+  height: 100% !important;
   margin: 0 auto !important;
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease !important;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
 }

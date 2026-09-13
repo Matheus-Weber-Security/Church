@@ -96,6 +96,54 @@ export const HomeEditor = () => {
     }
   };
 
+  // Injeta estilos no iframe do canvas para garantir rolagem fluida e espaço extra no rodapé
+  const injectCanvasStyles = (editor) => {
+    if (!editor || !editor.Canvas) return;
+    try {
+      const doc = editor.Canvas.getDocument();
+      if (!doc || !doc.head) return;
+
+      let styleEl = doc.getElementById('church-canvas-scroll-fix');
+      if (!styleEl) {
+        styleEl = doc.createElement('style');
+        styleEl.id = 'church-canvas-scroll-fix';
+        doc.head.appendChild(styleEl);
+      }
+
+      styleEl.innerHTML = `
+        html {
+          height: 100% !important;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          scroll-behavior: smooth;
+        }
+        body {
+          min-height: 100% !important;
+          /* Folga generosa para ver e editar até o final da página com conforto */
+          padding-bottom: 320px !important;
+          box-sizing: border-box !important;
+        }
+        /* Barra de rolagem estilizada e claramente visível */
+        ::-webkit-scrollbar {
+          width: 10px !important;
+          height: 10px !important;
+        }
+        ::-webkit-scrollbar-track {
+          background: #14141c !important;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #3b82f6 !important;
+          border-radius: 5px !important;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #2563eb !important;
+        }
+      `;
+    } catch (err) {
+      console.warn('Erro ao injetar estilos de rolagem no canvas:', err);
+    }
+  };
+
   // Carrega conteúdo de uma página específica no editor
   const loadPageContent = async (editor, slug) => {
     if (!editor) return;
@@ -105,6 +153,7 @@ export const HomeEditor = () => {
         try {
           const projectData = JSON.parse(data.project_data);
           editor.loadProjectData(projectData);
+          setTimeout(() => injectCanvasStyles(editor), 150);
           return;
         } catch (e) {
           // fallback para html/css se json falhar
@@ -118,10 +167,12 @@ export const HomeEditor = () => {
         editor.setComponents('');
         editor.setStyle('');
       }
+      setTimeout(() => injectCanvasStyles(editor), 150);
     } catch (err) {
       console.warn(`Página ${slug} sem conteúdo prévio:`, err.message);
       editor.setComponents('');
       editor.setStyle('');
+      setTimeout(() => injectCanvasStyles(editor), 150);
     }
   };
 
@@ -756,6 +807,15 @@ export const HomeEditor = () => {
       } else {
         setActiveDevice('desktop');
       }
+      setTimeout(() => injectCanvasStyles(editor), 100);
+    });
+
+    // Injeta estilos de rolagem ao carregar o canvas/iframe
+    editor.on('load', () => {
+      injectCanvasStyles(editor);
+    });
+    editor.on('canvas:frame:load', () => {
+      injectCanvasStyles(editor);
     });
 
     // Escuta modo Preview para alternar para o botão de Lápis
@@ -790,6 +850,8 @@ export const HomeEditor = () => {
 
     setEditorInstance(editor);
     editorRef.current = editor;
+
+    setTimeout(() => injectCanvasStyles(editor), 250);
 
     setLoadingProgress(100);
     setLoadingStatusText('✔ Pronto para editar!');
@@ -956,6 +1018,7 @@ export const HomeEditor = () => {
       editorRef.current.setDevice(deviceType);
     }
     setActiveDevice(deviceType);
+    setTimeout(() => injectCanvasStyles(editorRef.current), 100);
   };
 
   const handleOpenAssetManager = async () => {
@@ -996,6 +1059,7 @@ export const HomeEditor = () => {
     if (!editorRef.current) return;
     editorRef.current.setComponents(customHtml);
     editorRef.current.setStyle(customCss);
+    setTimeout(() => injectCanvasStyles(editorRef.current), 150);
     setIsCodeModalOpen(false);
     showToast('success', 'Código HTML e CSS atualizado no editor com sucesso!', 'Código Aplicado!');
   };
@@ -1192,7 +1256,7 @@ export const HomeEditor = () => {
       </div>
 
       {/* Canvas do GrapesJS */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
         {editorLoading && (
           <div style={{
             position: 'absolute',

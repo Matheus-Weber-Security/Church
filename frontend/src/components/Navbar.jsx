@@ -83,15 +83,17 @@ export const Navbar = ({ activeTab, setActiveTab, onNavigateHome }) => {
           <span>Manual (PDF)</span>
         </a>
 
-        <button
-          onClick={onNavigateHome}
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
           className="nav-btn"
-          style={{ fontSize: '0.85rem', color: '#9ca3af' }}
-          title="Ver página principal em uma nova aba ou navegar"
+          style={{ fontSize: '0.85rem', color: '#9ca3af', textDecoration: 'none' }}
+          title="Ver o site em uma nova aba"
         >
           <ExternalLink size={15} />
           <span>Ver Site</span>
-        </button>
+        </a>
 
         <div className="user-tag">
           <Shield size={14} color="#a1a1aa" />

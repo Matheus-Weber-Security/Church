@@ -181,7 +181,7 @@ export const HomeEditor = () => {
 
       // 2. Fallback: Localiza pelo nome do arquivo no AssetManager
       if (!url) {
-        const meta = el.querySelector('.gjs-am-asset__meta, .gjs-am-name');
+        const meta = el.querySelector('.gjs-am-asset__meta, .gjs-am-meta, .gjs-am-name');
         const name = meta ? meta.textContent.trim() : '';
         const allAssets = editor.AssetManager.getAll();
         const found = allAssets.find((a) => {

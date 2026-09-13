@@ -132,9 +132,119 @@ export const HomeEditor = () => {
     }
   };
 
+  // Função auxiliar universal para copiar texto (compatível com HTTP e HTTPS)
+  const copyToClipboard = async (text) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (e) {
+      // prossegue para fallback seguro
+    }
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      textArea.remove();
+      return successful;
+    } catch (err) {
+      return false;
+    }
+  };
+
+  // Injeta o botão "Copiar Link" abaixo do nome de cada foto na galeria do GrapesJS
+  const attachCopyButtons = (editor) => {
+    if (!editor) return;
+    const assetElements = document.querySelectorAll('.gjs-am-asset');
+    if (!assetElements.length) return;
+
+    assetElements.forEach((el) => {
+      if (el.querySelector('.btn-copy-asset-url')) return;
+
+      // 1. Tenta extrair a URL da imagem da prévia
+      let url = '';
+      const preview = el.querySelector('.gjs-am-asset__preview, [class*="preview"], img');
+      if (preview) {
+        if (preview.tagName === 'IMG' && preview.src) {
+          url = preview.src;
+        } else if (preview.style.backgroundImage) {
+          url = preview.style.backgroundImage.replace(/^url\(["']?/, '').replace(/["']?\)$/, '');
+        }
+      }
+
+      // 2. Fallback: Localiza pelo nome do arquivo no AssetManager
+      if (!url) {
+        const meta = el.querySelector('.gjs-am-asset__meta, .gjs-am-name');
+        const name = meta ? meta.textContent.trim() : '';
+        const allAssets = editor.AssetManager.getAll();
+        const found = allAssets.find((a) => {
+          const aSrc = a.get ? (a.get('src') || '') : (a.src || '');
+          const aName = a.get ? (a.get('name') || '') : (a.name || '');
+          return (name && aName === name) || (name && aSrc.includes(name));
+        });
+        if (found) {
+          url = found.get ? found.get('src') : found.src;
+        }
+      }
+
+      if (!url) return;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'btn-copy-asset-url';
+      copyBtn.type = 'button';
+      copyBtn.title = 'Copiar link direto desta foto';
+      copyBtn.innerHTML = `
+        <svg style="width:12px;height:12px;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span>Copiar Link</span>
+      `;
+
+      copyBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const success = await copyToClipboard(url);
+        if (success) {
+          copyBtn.classList.add('copied');
+          copyBtn.innerHTML = `
+            <svg style="width:12px;height:12px;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Copiado!</span>
+          `;
+          showToast('success', `Link copiado: ${url}`, 'Link Copiado!', 3500);
+          setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            copyBtn.innerHTML = `
+              <svg style="width:12px;height:12px;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Copiar Link</span>
+            `;
+          }, 2000);
+        } else {
+          window.prompt('Copie o link da foto abaixo:', url);
+        }
+      });
+
+      el.appendChild(copyBtn);
+    });
+  };
+
   useEffect(() => {
     if (!containerRef.current) return;
     let editor = null;
+    let assetsObserver = null;
 
     const setupEditor = async () => {
       setLoadingProgress(25);
@@ -643,10 +753,18 @@ export const HomeEditor = () => {
       showToast('error', `Erro na galeria: ${msg}`, 'Erro de Upload');
     });
 
-    // Recarrega galeria de fotos sempre que abrir a galeria no editor
+    // Recarrega galeria de fotos sempre que abrir a galeria no editor e injeta botões de copiar link
     editor.on('run:open-assets', async () => {
       await loadExistingAssets(editor);
+      setTimeout(() => attachCopyButtons(editor), 100);
+      setTimeout(() => attachCopyButtons(editor), 300);
     });
+
+    // Observer contínuo para detectar modal da galeria e anexar botões de copiar
+    assetsObserver = new MutationObserver(() => {
+      attachCopyButtons(editor);
+    });
+    assetsObserver.observe(document.body, { childList: true, subtree: true });
 
     // Executa carregamento inicial
     await loadPagesList();
@@ -666,6 +784,9 @@ export const HomeEditor = () => {
   setupEditor();
 
   return () => {
+    if (assetsObserver) {
+      assetsObserver.disconnect();
+    }
     if (editor) {
       editor.destroy();
     }

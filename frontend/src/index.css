@@ -798,6 +798,8 @@ body {
   overflow: hidden !important;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
   cursor: pointer !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .gjs-am-asset:hover {
@@ -820,4 +822,35 @@ body {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   background-color: #181820 !important;
+}
+
+.btn-copy-asset-url {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  width: calc(100% - 12px) !important;
+  margin: 6px auto 8px !important;
+  padding: 6px 8px !important;
+  background-color: #242436 !important;
+  color: #60a5fa !important;
+  border: 1px solid #3b82f6 !important;
+  border-radius: 6px !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  z-index: 10 !important;
+}
+
+.btn-copy-asset-url:hover {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+  transform: scale(1.02) !important;
+}
+
+.btn-copy-asset-url.copied {
+  background-color: #10b981 !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
 }

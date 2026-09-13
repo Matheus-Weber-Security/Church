@@ -78,6 +78,12 @@ export const HomeEditor = () => {
   const [isNewPageModalOpen, setIsNewPageModalOpen] = useState(false);
   const [newPageData, setNewPageData] = useState({ title: '', slug: '' });
 
+  // Modal de Edição de Código Livre (HTML / CSS)
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
+  const [codeTab, setCodeTab] = useState('html');
+  const [customHtml, setCustomHtml] = useState('');
+  const [customCss, setCustomCss] = useState('');
+
   // Carrega lista de páginas
   const loadPagesList = async () => {
     try {
@@ -727,6 +733,17 @@ export const HomeEditor = () => {
       }
     });
 
+    // Habilita edição direta por duplo clique em elementos de Link (itens de menu, botões, etc.)
+    editor.DomComponents.addType('link', {
+      isComponent: el => el.tagName === 'A',
+      model: {
+        defaults: {
+          editable: true,
+          droppable: true
+        }
+      }
+    });
+
     // Escuta mudança de dispositivo no GrapesJS para sincronizar os botões da barra superior
     editor.on('change:device', () => {
       const currentDevice = editor.getDevice();
@@ -967,7 +984,20 @@ export const HomeEditor = () => {
 
   const handleViewCode = () => {
     if (!editorRef.current) return;
-    editorRef.current.runCommand('export-template');
+    const currentHtml = editorRef.current.getHtml();
+    const currentCss = editorRef.current.getCss();
+    setCustomHtml(currentHtml || '');
+    setCustomCss(currentCss || '');
+    setCodeTab('html');
+    setIsCodeModalOpen(true);
+  };
+
+  const handleApplyCode = () => {
+    if (!editorRef.current) return;
+    editorRef.current.setComponents(customHtml);
+    editorRef.current.setStyle(customCss);
+    setIsCodeModalOpen(false);
+    showToast('success', 'Código HTML e CSS atualizado no editor com sucesso!', 'Código Aplicado!');
   };
 
   return (
@@ -1296,6 +1326,181 @@ export const HomeEditor = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editor de Código Livre HTML / CSS */}
+      {isCodeModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsCodeModalOpen(false)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '980px',
+              width: '92vw',
+              height: '84vh',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '1.5rem',
+              backgroundColor: '#16161f',
+              border: '1px solid #2e2e40',
+              borderRadius: '12px'
+            }}
+          >
+            {/* Cabeçalho */}
+            <div className="modal-header" style={{ marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid #282836' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <Code2 size={20} color="#60a5fa" />
+                <h2 className="modal-title" style={{ fontSize: '1.15rem' }}>Editor de Código Livre ({currentPage})</h2>
+              </div>
+              <button className="close-btn" onClick={() => setIsCodeModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Abas HTML e CSS */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setCodeTab('html')}
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: '6px',
+                  border: '1px solid',
+                  borderColor: codeTab === 'html' ? '#3b82f6' : '#2e2e3e',
+                  backgroundColor: codeTab === 'html' ? '#1e293b' : '#121217',
+                  color: codeTab === 'html' ? '#60a5fa' : '#9ca3af',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                HTML da Página
+              </button>
+              <button
+                type="button"
+                onClick={() => setCodeTab('css')}
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: '6px',
+                  border: '1px solid',
+                  borderColor: codeTab === 'css' ? '#3b82f6' : '#2e2e3e',
+                  backgroundColor: codeTab === 'css' ? '#1e293b' : '#121217',
+                  color: codeTab === 'css' ? '#60a5fa' : '#9ca3af',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                CSS / Estilos
+              </button>
+            </div>
+
+            {/* Área de Digitação Livre de Código */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              {codeTab === 'html' ? (
+                <textarea
+                  value={customHtml}
+                  onChange={(e) => setCustomHtml(e.target.value)}
+                  placeholder="Digite ou cole o código HTML aqui..."
+                  spellCheck={false}
+                  style={{
+                    flex: 1,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: '#0c0c11',
+                    color: '#f8fafc',
+                    fontFamily: 'Consolas, "Fira Code", monospace',
+                    fontSize: '0.88rem',
+                    lineHeight: 1.5,
+                    padding: '1rem',
+                    border: '1px solid #2a2a3c',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    resize: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Tab') {
+                      e.preventDefault();
+                      const start = e.target.selectionStart;
+                      const end = e.target.selectionEnd;
+                      setCustomHtml(customHtml.substring(0, start) + '  ' + customHtml.substring(end));
+                      setTimeout(() => {
+                        e.target.selectionStart = e.target.selectionEnd = start + 2;
+                      }, 0);
+                    }
+                  }}
+                />
+              ) : (
+                <textarea
+                  value={customCss}
+                  onChange={(e) => setCustomCss(e.target.value)}
+                  placeholder="/* Digite ou cole seus estilos CSS aqui */"
+                  spellCheck={false}
+                  style={{
+                    flex: 1,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: '#0c0c11',
+                    color: '#f8fafc',
+                    fontFamily: 'Consolas, "Fira Code", monospace',
+                    fontSize: '0.88rem',
+                    lineHeight: 1.5,
+                    padding: '1rem',
+                    border: '1px solid #2a2a3c',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    resize: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Tab') {
+                      e.preventDefault();
+                      const start = e.target.selectionStart;
+                      const end = e.target.selectionEnd;
+                      setCustomCss(customCss.substring(0, start) + '  ' + customCss.substring(end));
+                      setTimeout(() => {
+                        e.target.selectionStart = e.target.selectionEnd = start + 2;
+                      }, 0);
+                    }
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Rodapé com botão Salvar Código */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #282836' }}>
+              <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
+                💡 Edite à vontade. O código só será aplicado no editor após clicar em <strong>Salvar Código</strong>.
+              </span>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button type="button" className="btn-secondary" onClick={() => setIsCodeModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn-accent"
+                  onClick={handleApplyCode}
+                  style={{
+                    backgroundColor: '#3b82f6',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '0.55rem 1.3rem',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Save size={15} />
+                  <span>Salvar Código</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

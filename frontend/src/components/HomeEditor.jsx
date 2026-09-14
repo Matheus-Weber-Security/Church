@@ -919,12 +919,8 @@ export const HomeEditor = () => {
       }
     });
 
-    // Personaliza comando 'export-template' (Ver Código) com tela cheia abaixo do menu, busca interativa e CodeMirror
+    // Personaliza comando 'export-template' (Ver Código) com tela cheia, tags verde/roxa e busca inline sem corte
     editor.Commands.add('export-template', {
-      currentMatches: [],
-      currentMatchIdx: -1,
-      activeMarker: null,
-
       run(ed) {
         const modal = ed.Modal;
         const pfx = ed.getConfig().stylePrefix || 'gjs-';
@@ -933,97 +929,7 @@ export const HomeEditor = () => {
           const container = document.createElement('div');
           container.className = 'church-code-modal-wrapper';
 
-          // 1. Barra de Busca Superior
-          const searchBar = document.createElement('div');
-          searchBar.className = 'church-code-search-bar';
-
-          const searchLeft = document.createElement('div');
-          searchLeft.className = 'church-code-search-left';
-
-          const searchInputBox = document.createElement('div');
-          searchInputBox.className = 'church-code-search-input-box';
-
-          const searchIcon = document.createElement('div');
-          searchIcon.className = 'church-code-search-icon';
-          searchIcon.innerHTML = `
-            <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          `;
-
-          const searchInput = document.createElement('input');
-          searchInput.type = 'text';
-          searchInput.className = 'church-code-search-input';
-          searchInput.placeholder = 'Buscar no código HTML e CSS (tag, classe, texto, cor)...';
-          searchInput.spellcheck = false;
-
-          const clearBtn = document.createElement('button');
-          clearBtn.type = 'button';
-          clearBtn.className = 'church-code-search-clear-btn';
-          clearBtn.title = 'Limpar busca';
-          clearBtn.innerHTML = `
-            <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          `;
-
-          searchInputBox.appendChild(searchIcon);
-          searchInputBox.appendChild(searchInput);
-          searchInputBox.appendChild(clearBtn);
-
-          const searchNav = document.createElement('div');
-          searchNav.className = 'church-code-search-nav';
-
-          const btnPrev = document.createElement('button');
-          btnPrev.type = 'button';
-          btnPrev.className = 'btn-search-nav prev-match';
-          btnPrev.title = 'Ocorrência anterior (Shift+Enter)';
-          btnPrev.disabled = true;
-          btnPrev.innerHTML = `
-            <svg style="width:13px;height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="18 15 12 9 6 15"/>
-            </svg>
-            <span>Anterior</span>
-          `;
-
-          const btnNext = document.createElement('button');
-          btnNext.type = 'button';
-          btnNext.className = 'btn-search-nav next-match';
-          btnNext.title = 'Próxima ocorrência (Enter)';
-          btnNext.disabled = true;
-          btnNext.innerHTML = `
-            <span>Próxima</span>
-            <svg style="width:13px;height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          `;
-
-          searchNav.appendChild(btnPrev);
-          searchNav.appendChild(btnNext);
-
-          const counterBadge = document.createElement('span');
-          counterBadge.className = 'church-code-search-counter';
-          counterBadge.innerText = 'Digite para pesquisar';
-
-          searchLeft.appendChild(searchInputBox);
-          searchLeft.appendChild(searchNav);
-          searchLeft.appendChild(counterBadge);
-
-          const searchRight = document.createElement('div');
-          searchRight.className = 'church-code-search-right';
-          searchRight.innerHTML = `
-            <span class="church-code-search-shortcut-hint">
-              <kbd>Enter</kbd> próxima · <kbd>Shift+Enter</kbd> anterior · <kbd>Ctrl+F</kbd> buscar
-            </span>
-          `;
-
-          searchBar.appendChild(searchLeft);
-          searchBar.appendChild(searchRight);
-          container.appendChild(searchBar);
-
-          // 2. Colunas de Editores CodeMirror (HTML e CSS)
+          // Colunas dos editores HTML e CSS
           const editorsCont = document.createElement('div');
           editorsCont.className = `${pfx}export-dl`;
 
@@ -1031,18 +937,22 @@ export const HomeEditor = () => {
           const oCssEd = this.buildEditor(ed, 'css', 'hopscotch', 'CSS');
           this.htmlEditor = oHtmlEd.model;
           this.cssEditor = oCssEd.model;
+          this.htmlSearchInput = oHtmlEd.searchInput;
+          this.htmlCountBadge = oHtmlEd.countBadge;
+          this.cssSearchInput = oCssEd.searchInput;
+          this.cssCountBadge = oCssEd.countBadge;
 
           editorsCont.appendChild(oHtmlEd.el);
           editorsCont.appendChild(oCssEd.el);
           container.appendChild(editorsCont);
 
-          // 3. Rodapé do modal com aviso e botões Cancelar e Salvar Código
+          // Rodapé do modal com aviso e botões Cancelar e Salvar Código
           const footer = document.createElement('div');
           footer.className = 'church-code-modal-footer';
 
           const hint = document.createElement('span');
           hint.className = 'church-code-modal-hint';
-          hint.innerHTML = '💡 Edite o HTML e CSS livremente com realce de sintaxe. As alterações só serão aplicadas após clicar em <strong>Salvar Código</strong>.';
+          hint.innerHTML = '💡 Digite nos campos acima e aperte <strong>Enter</strong> para localizar no código (ou <strong>Shift+Enter</strong> para anterior).';
 
           const btnContainer = document.createElement('div');
           btnContainer.className = 'church-code-modal-actions';
@@ -1080,186 +990,12 @@ export const HomeEditor = () => {
           footer.appendChild(btnContainer);
           container.appendChild(footer);
 
-          // Funções da Busca Interativa
-          const clearAllMarks = () => {
-            const htmlCm = this.htmlEditor.getEditor && this.htmlEditor.getEditor();
-            const cssCm = this.cssEditor.getEditor && this.cssEditor.getEditor();
-            if (htmlCm && htmlCm.getAllMarks) htmlCm.getAllMarks().forEach(m => m.clear());
-            if (cssCm && cssCm.getAllMarks) cssCm.getAllMarks().forEach(m => m.clear());
-            this.currentMatches = [];
-            this.currentMatchIdx = -1;
-            this.activeMarker = null;
-          };
-
-          const jumpToMatch = (idx) => {
-            if (!this.currentMatches.length) return;
-            const total = this.currentMatches.length;
-            if (idx >= total) idx = 0;
-            if (idx < 0) idx = total - 1;
-            this.currentMatchIdx = idx;
-
-            const m = this.currentMatches[idx];
-
-            // Limpa o marcador ativo anterior
-            if (this.activeMarker) {
-              try { this.activeMarker.clear(); } catch (e) {}
-              this.activeMarker = null;
-            }
-
-            // Marca o atual como ativo
-            try {
-              if (m.marker) {
-                m.marker.clear();
-              }
-              m.marker = m.cm.markText(
-                { line: m.line, ch: m.startCh },
-                { line: m.line, ch: m.endCh },
-                { className: 'cm-search-highlight-active' }
-              );
-              this.activeMarker = m.marker;
-            } catch (e) {}
-
-            // Rola suavemente para a ocorrência e seleciona
-            try {
-              m.cm.scrollIntoView({ line: m.line, ch: m.startCh }, 150);
-              m.cm.setSelection({ line: m.line, ch: m.startCh }, { line: m.line, ch: m.endCh });
-            } catch (e) {}
-
-            // Atualiza o contador de resultados
-            counterBadge.className = 'church-code-search-counter';
-            counterBadge.innerHTML = `<strong>${idx + 1} de ${total}</strong> no <strong>${m.type}</strong> (linha ${m.line + 1})`;
-            btnPrev.disabled = false;
-            btnNext.disabled = false;
-          };
-
-          const executeSearch = (rawQuery) => {
-            clearAllMarks();
-            const query = (rawQuery || '').trim();
-            if (!query) {
-              clearBtn.style.display = 'none';
-              btnPrev.disabled = true;
-              btnNext.disabled = true;
-              counterBadge.className = 'church-code-search-counter';
-              counterBadge.innerText = 'Digite para pesquisar';
-              return;
-            }
-
-            clearBtn.style.display = 'flex';
-            const lowerQuery = query.toLowerCase();
-            const htmlCm = this.htmlEditor.getEditor && this.htmlEditor.getEditor();
-            const cssCm = this.cssEditor.getEditor && this.cssEditor.getEditor();
-
-            const matches = [];
-
-            // Pesquisa nas linhas do HTML
-            if (htmlCm) {
-              const count = htmlCm.lineCount();
-              for (let line = 0; line < count; line++) {
-                const text = htmlCm.getLine(line);
-                let pos = text.toLowerCase().indexOf(lowerQuery);
-                while (pos !== -1) {
-                  matches.push({
-                    type: 'HTML',
-                    cm: htmlCm,
-                    line,
-                    startCh: pos,
-                    endCh: pos + query.length
-                  });
-                  pos = text.toLowerCase().indexOf(lowerQuery, pos + 1);
-                }
-              }
-            }
-
-            // Pesquisa nas linhas do CSS
-            if (cssCm) {
-              const count = cssCm.lineCount();
-              for (let line = 0; line < count; line++) {
-                const text = cssCm.getLine(line);
-                let pos = text.toLowerCase().indexOf(lowerQuery);
-                while (pos !== -1) {
-                  matches.push({
-                    type: 'CSS',
-                    cm: cssCm,
-                    line,
-                    startCh: pos,
-                    endCh: pos + query.length
-                  });
-                  pos = text.toLowerCase().indexOf(lowerQuery, pos + 1);
-                }
-              }
-            }
-
-            this.currentMatches = matches;
-
-            if (matches.length === 0) {
-              btnPrev.disabled = true;
-              btnNext.disabled = true;
-              counterBadge.className = 'church-code-search-counter has-none';
-              counterBadge.innerText = 'Nenhuma ocorrência encontrada';
-              return;
-            }
-
-            // Aplica highlight em todas as correspondências
-            matches.forEach((m) => {
-              try {
-                m.marker = m.cm.markText(
-                  { line: m.line, ch: m.startCh },
-                  { line: m.line, ch: m.endCh },
-                  { className: 'cm-search-highlight-all' }
-                );
-              } catch (e) {}
-            });
-
-            // Pula para a primeira ocorrência
-            jumpToMatch(0);
-          };
-
-          let searchDebounceTimer = null;
-          searchInput.oninput = () => {
-            clearTimeout(searchDebounceTimer);
-            searchDebounceTimer = setTimeout(() => {
-              executeSearch(searchInput.value);
-            }, 120);
-          };
-
-          searchInput.onkeydown = (e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              if (e.shiftKey) {
-                if (this.currentMatches.length) jumpToMatch(this.currentMatchIdx - 1);
-              } else {
-                if (this.currentMatches.length) jumpToMatch(this.currentMatchIdx + 1);
-              }
-            } else if (e.key === 'Escape') {
-              searchInput.value = '';
-              executeSearch('');
-              searchInput.blur();
-            }
-          };
-
-          btnPrev.onclick = () => {
-            if (this.currentMatches.length) jumpToMatch(this.currentMatchIdx - 1);
-          };
-
-          btnNext.onclick = () => {
-            if (this.currentMatches.length) jumpToMatch(this.currentMatchIdx + 1);
-          };
-
-          clearBtn.onclick = () => {
-            searchInput.value = '';
-            executeSearch('');
-            searchInput.focus();
-          };
-
-          this.searchInput = searchInput;
-          this.executeSearch = executeSearch;
-          this.clearAllMarks = clearAllMarks;
           this.codeContainer = container;
         }
 
-        // Abre o modal GrapesJS
+        // Abre o modal GrapesJS sem a frase "Editor de Código Livre (HTML & CSS)"
         modal.open({
-          title: 'Editor de Código Livre (HTML & CSS)',
+          title: '',
           content: this.codeContainer
         });
 
@@ -1270,12 +1006,14 @@ export const HomeEditor = () => {
         if (dialogEl) dialogEl.classList.add('gjs-mdl-dialog-code-full');
         if (containerEl) containerEl.classList.add('gjs-mdl-container-code-full');
 
-        // Garante a remoção das classes ao fechar o modal
+        // Garante a remoção das classes e limpeza de busca ao fechar o modal
         const cleanupFullClasses = () => {
           if (dialogEl) dialogEl.classList.remove('gjs-mdl-dialog-code-full');
           if (containerEl) containerEl.classList.remove('gjs-mdl-container-code-full');
-          if (this.clearAllMarks) this.clearAllMarks();
-          if (this.searchInput) this.searchInput.value = '';
+          if (this.htmlSearchHandler) this.htmlSearchHandler.clearMarks();
+          if (this.cssSearchHandler) this.cssSearchHandler.clearMarks();
+          if (this.htmlSearchInput) this.htmlSearchInput.value = '';
+          if (this.cssSearchInput) this.cssSearchInput.value = '';
         };
 
         modal.getModel().once('change:open', (m) => {
@@ -1288,46 +1026,23 @@ export const HomeEditor = () => {
         this.htmlEditor.setContent(formatHtml(rawHtml));
         this.cssEditor.setContent(formatCss(rawCss));
 
-        // Permite digitação livre nos editores CodeMirror e configura atalho Ctrl+F para buscar
+        // Permite digitação livre nos editores CodeMirror e configura o buscador inline
         setTimeout(() => {
           const htmlCm = this.htmlEditor.getEditor && this.htmlEditor.getEditor();
           if (htmlCm) {
             htmlCm.setOption('readOnly', false);
-            htmlCm.setOption('extraKeys', {
-              'Ctrl-F': () => {
-                if (this.searchInput) {
-                  this.searchInput.focus();
-                  this.searchInput.select();
-                }
-              },
-              'Cmd-F': () => {
-                if (this.searchInput) {
-                  this.searchInput.focus();
-                  this.searchInput.select();
-                }
-              }
-            });
             htmlCm.refresh();
-            htmlCm.focus();
+            if (!this.htmlSearchHandler && this.htmlSearchInput) {
+              this.htmlSearchHandler = this.setupSearch(htmlCm, this.htmlSearchInput, this.htmlCountBadge);
+            }
           }
           const cssCm = this.cssEditor.getEditor && this.cssEditor.getEditor();
           if (cssCm) {
             cssCm.setOption('readOnly', false);
-            cssCm.setOption('extraKeys', {
-              'Ctrl-F': () => {
-                if (this.searchInput) {
-                  this.searchInput.focus();
-                  this.searchInput.select();
-                }
-              },
-              'Cmd-F': () => {
-                if (this.searchInput) {
-                  this.searchInput.focus();
-                  this.searchInput.select();
-                }
-              }
-            });
             cssCm.refresh();
+            if (!this.cssSearchHandler && this.cssSearchInput) {
+              this.cssSearchHandler = this.setupSearch(cssCm, this.cssSearchInput, this.cssCountBadge);
+            }
           }
         }, 80);
 
@@ -1338,6 +1053,147 @@ export const HomeEditor = () => {
           if (htmlCm) htmlCm.refresh();
           if (cssCm) cssCm.refresh();
         }, 220);
+      },
+
+      setupSearch(cmInstance, searchInput, countBadge) {
+        if (!cmInstance || !searchInput) return { clearMarks: () => {} };
+
+        let matches = [];
+        let currentIdx = -1;
+        let activeMarker = null;
+
+        const clearMarks = () => {
+          if (cmInstance && cmInstance.getAllMarks) {
+            cmInstance.getAllMarks().forEach((m) => m.clear());
+          }
+          matches = [];
+          currentIdx = -1;
+          activeMarker = null;
+          if (countBadge) {
+            countBadge.innerText = '';
+            countBadge.style.display = 'none';
+          }
+        };
+
+        const jumpTo = (idx) => {
+          if (!matches.length) return;
+          if (idx >= matches.length) idx = 0;
+          if (idx < 0) idx = matches.length - 1;
+          currentIdx = idx;
+
+          const m = matches[idx];
+
+          if (activeMarker) {
+            try { activeMarker.clear(); } catch (e) {}
+            activeMarker = null;
+          }
+
+          try {
+            if (m.marker) m.marker.clear();
+            m.marker = cmInstance.markText(
+              { line: m.line, ch: m.startCh },
+              { line: m.line, ch: m.endCh },
+              { className: 'cm-search-highlight-active' }
+            );
+            activeMarker = m.marker;
+          } catch (e) {}
+
+          try {
+            cmInstance.scrollIntoView({ line: m.line, ch: m.startCh }, 140);
+            cmInstance.setSelection({ line: m.line, ch: m.startCh }, { line: m.line, ch: m.endCh });
+          } catch (e) {}
+
+          if (countBadge) {
+            countBadge.innerText = `${idx + 1}/${matches.length}`;
+            countBadge.className = 'church-search-match-count';
+            countBadge.style.display = 'inline-block';
+          }
+        };
+
+        const doSearch = () => {
+          clearMarks();
+          const query = (searchInput.value || '').trim();
+          if (!query) return;
+
+          const lowerQuery = query.toLowerCase();
+          const lineCount = cmInstance.lineCount();
+          const found = [];
+
+          for (let line = 0; line < lineCount; line++) {
+            const text = cmInstance.getLine(line);
+            let pos = text.toLowerCase().indexOf(lowerQuery);
+            while (pos !== -1) {
+              found.push({
+                line,
+                startCh: pos,
+                endCh: pos + query.length
+              });
+              pos = text.toLowerCase().indexOf(lowerQuery, pos + 1);
+            }
+          }
+
+          matches = found;
+
+          if (found.length === 0) {
+            if (countBadge) {
+              countBadge.innerText = '0/0';
+              countBadge.className = 'church-search-match-count is-empty';
+              countBadge.style.display = 'inline-block';
+            }
+            return;
+          }
+
+          found.forEach((m) => {
+            try {
+              m.marker = cmInstance.markText(
+                { line: m.line, ch: m.startCh },
+                { line: m.line, ch: m.endCh },
+                { className: 'cm-search-highlight-all' }
+              );
+            } catch (e) {}
+          });
+
+          jumpTo(0);
+        };
+
+        let timer = null;
+        searchInput.oninput = () => {
+          clearTimeout(timer);
+          timer = setTimeout(doSearch, 120);
+        };
+
+        searchInput.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!matches.length) {
+              doSearch();
+            } else {
+              if (e.shiftKey) {
+                jumpTo(currentIdx - 1);
+              } else {
+                jumpTo(currentIdx + 1);
+              }
+            }
+          } else if (e.key === 'Escape') {
+            searchInput.value = '';
+            clearMarks();
+            searchInput.blur();
+          }
+        };
+
+        // Atalho Ctrl+F / Cmd+F para focar o campo de busca
+        cmInstance.setOption('extraKeys', {
+          'Ctrl-F': () => {
+            searchInput.focus();
+            searchInput.select();
+          },
+          'Cmd-F': () => {
+            searchInput.focus();
+            searchInput.select();
+          }
+        });
+
+        return { clearMarks, doSearch, searchInput };
       },
 
       buildEditor(ed, codeName, theme, label) {
@@ -1353,7 +1209,54 @@ export const HomeEditor = () => {
           model,
           config: cm.getConfig()
         }).render().el;
-        return { model, el };
+
+        // Customiza a barra superior: Tag Verde/Roxa acima da numeração + Campo de Busca sem botão (Enter)
+        const isHtml = codeName === 'htmlmixed';
+        const titleEl = el.querySelector('#gjs-cm-title');
+        let searchInput = null;
+        let countBadge = null;
+
+        if (titleEl) {
+          titleEl.innerHTML = '';
+          titleEl.className = 'church-editor-top-bar';
+
+          // Tag verde (HTML) ou roxa (CSS) acima da numeração
+          const tagEl = document.createElement('div');
+          tagEl.className = isHtml ? 'church-code-tag tag-html' : 'church-code-tag tag-css';
+          tagEl.innerText = isHtml ? 'HTML' : 'CSS';
+
+          // Campo de busca sem botão
+          const searchBox = document.createElement('div');
+          searchBox.className = 'church-editor-search-box';
+
+          const icon = document.createElement('span');
+          icon.className = 'church-editor-search-icon';
+          icon.innerHTML = `
+            <svg style="width:13px;height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          `;
+
+          searchInput = document.createElement('input');
+          searchInput.type = 'text';
+          searchInput.className = 'church-code-inline-search';
+          searchInput.placeholder = isHtml ? 'Buscar no HTML (Enter)...' : 'Buscar no CSS (Enter)...';
+          searchInput.spellcheck = false;
+
+          countBadge = document.createElement('span');
+          countBadge.className = 'church-search-match-count';
+          countBadge.style.display = 'none';
+
+          searchBox.appendChild(icon);
+          searchBox.appendChild(searchInput);
+          searchBox.appendChild(countBadge);
+
+          titleEl.appendChild(tagEl);
+          titleEl.appendChild(searchBox);
+        }
+
+        return { model, el, searchInput, countBadge };
       }
     });
 

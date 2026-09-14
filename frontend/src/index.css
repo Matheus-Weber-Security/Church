@@ -1032,7 +1032,7 @@ body {
 }
 
 /* ==========================================
-   GRAPESJS CODE VIEWER / EXPORT-TEMPLATE FULLSCREEN & SEARCH
+   GRAPESJS CODE VIEWER / EXPORT-TEMPLATE FULLSCREEN & INLINE SEARCH
    ========================================== */
 
 /* Container do modal de código ocupando todo o espaço abaixo do menu principal (68px) */
@@ -1055,7 +1055,7 @@ body {
   overflow: hidden !important;
 }
 
-/* Diálogo do modal expandido em tela cheia */
+/* Diálogo do modal expandido em tela cheia sem cortes */
 .gjs-mdl-dialog.gjs-mdl-dialog-code-full {
   position: absolute !important;
   top: 0 !important;
@@ -1075,29 +1075,48 @@ body {
   flex-direction: column !important;
   box-shadow: none !important;
   overflow: hidden !important;
+  box-sizing: border-box !important;
 }
 
+/* Cabeçalho superior mínimo: remove frase "Editor de Código Livre" e mantém apenas o botão de fechar */
 .gjs-mdl-dialog.gjs-mdl-dialog-code-full .gjs-mdl-header {
-  padding: 8px 18px !important;
-  background-color: #13131c !important;
-  border-bottom: 1px solid #222230 !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  padding: 0 16px !important;
+  background-color: #11111a !important;
+  border-bottom: 1px solid #1f1f2e !important;
   display: flex !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  justify-content: flex-end !important;
   flex-shrink: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .gjs-mdl-dialog.gjs-mdl-dialog-code-full .gjs-mdl-title {
-  font-size: 0.98rem !important;
-  font-weight: 700 !important;
-  color: #f1f5f9 !important;
-  letter-spacing: 0.02em !important;
+  display: none !important;
 }
 
+.gjs-mdl-dialog.gjs-mdl-dialog-code-full .gjs-mdl-btn-close {
+  color: #9ca3af !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  background: transparent !important;
+  border: none !important;
+  transition: color 0.15s ease !important;
+}
+
+.gjs-mdl-dialog.gjs-mdl-dialog-code-full .gjs-mdl-btn-close:hover {
+  color: #ef4444 !important;
+}
+
+/* Área de Conteúdo 100% contida sem estourar o rodapé */
 .gjs-mdl-dialog.gjs-mdl-dialog-code-full .gjs-mdl-content {
-  flex: 1 !important;
-  height: calc(100% - 46px) !important;
-  padding: 10px 18px 12px 18px !important;
+  flex: 1 1 0% !important;
+  height: calc(100% - 28px) !important;
+  min-height: 0 !important;
+  padding: 8px 14px 8px 14px !important;
   box-sizing: border-box !important;
   display: flex !important;
   flex-direction: column !important;
@@ -1107,188 +1126,30 @@ body {
 
 .church-code-modal-wrapper {
   width: 100%;
-  flex: 1;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  box-sizing: border-box;
-  min-height: 0;
-}
-
-/* Barra de Busca acima dos editores */
-.church-code-search-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background-color: #151520;
-  border: 1px solid #272738;
-  border-radius: 8px;
-  padding: 7px 14px;
-  flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.church-code-search-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-}
-
-.church-code-search-input-box {
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  max-width: 480px;
-}
-
-.church-code-search-icon {
-  position: absolute;
-  left: 10px;
-  color: #60a5fa;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-}
-
-.church-code-search-input {
-  width: 100%;
-  background-color: #0b0b11;
-  border: 1px solid #313147;
-  border-radius: 6px;
-  padding: 7px 32px 7px 34px;
-  color: #ffffff;
-  font-size: 0.85rem;
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  box-sizing: border-box;
-}
-
-.church-code-search-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
-}
-
-.church-code-search-input::placeholder {
-  color: #6b7280;
-}
-
-.church-code-search-clear-btn {
-  position: absolute;
-  right: 8px;
-  background: transparent;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  padding: 2px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: color 0.15s;
-}
-
-.church-code-search-clear-btn:hover {
-  color: #ef4444;
-}
-
-.church-code-search-nav {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-search-nav {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background-color: #222232;
-  border: 1px solid #36364c;
-  color: #e2e8f0;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-
-.btn-search-nav:hover:not(:disabled) {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
-  color: #ffffff;
-}
-
-.btn-search-nav:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.church-code-search-counter {
-  font-size: 0.8rem;
-  color: #94a3b8;
-  white-space: nowrap;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background-color: #1c1c2b;
-  border: 1px solid #29293e;
-}
-
-.church-code-search-counter strong {
-  color: #38bdf8;
-}
-
-.church-code-search-counter.has-none {
-  color: #f87171;
-  background-color: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.35);
-}
-
-.church-code-search-right {
-  display: flex;
-  align-items: center;
-}
-
-.church-code-search-shortcut-hint {
-  font-size: 0.74rem;
-  color: #71717a;
-}
-
-.church-code-search-shortcut-hint kbd {
-  background-color: #20202e;
-  border: 1px solid #333346;
-  border-radius: 4px;
-  padding: 2px 5px;
-  font-size: 0.7rem;
-  color: #cbd5e1;
-  font-family: inherit;
-}
-
-@media (max-width: 900px) {
-  .church-code-search-shortcut-hint {
-    display: none;
-  }
+  flex: 1 1 0% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 /* Áreas de Código HTML e CSS lado a lado */
 .church-code-modal-wrapper .gjs-export-dl {
-  flex: 1 !important;
-  height: 100% !important;
+  flex: 1 1 0% !important;
+  height: calc(100% - 48px) !important;
   min-height: 0 !important;
   display: flex !important;
   gap: 12px !important;
   width: 100% !important;
   box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 .church-code-modal-wrapper .gjs-cm-editor-c {
-  flex: 1 !important;
+  flex: 1 1 0% !important;
   height: 100% !important;
   min-height: 0 !important;
   width: 50% !important;
@@ -1296,10 +1157,11 @@ body {
   display: flex !important;
   flex-direction: column !important;
   box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 .church-code-modal-wrapper .gjs-cm-editor {
-  flex: 1 !important;
+  flex: 1 1 0% !important;
   height: 100% !important;
   min-height: 0 !important;
   display: flex !important;
@@ -1311,36 +1173,127 @@ body {
   box-sizing: border-box !important;
 }
 
-.church-code-modal-wrapper .gjs-cm-editor #gjs-cm-title {
-  background-color: #171723 !important;
-  font-family: var(--font-display) !important;
-  font-weight: 700 !important;
-  font-size: 0.85rem !important;
-  letter-spacing: 0.05em !important;
-  text-align: left !important;
-  padding: 8px 14px !important;
-  border-bottom: 1px solid #252536 !important;
+/* Barra Superior de cada Editor: Tags Verde/Roxa e Campo de Busca Inline */
+.church-editor-top-bar {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
   flex-shrink: 0 !important;
+  background-color: #161622 !important;
+  border-bottom: 1px solid #262638 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
 }
 
-.church-code-modal-wrapper .gjs-cm-editor#gjs-cm-htmlmixed #gjs-cm-title {
+/* Tag Verde HTML do lado esquerdo acima da numeração */
+.church-code-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: var(--font-display, inherit) !important;
+  font-weight: 700 !important;
+  font-size: 0.78rem !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  padding: 4px 12px !important;
+  border-radius: 6px !important;
+  color: #ffffff !important;
+  user-select: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+.church-code-tag.tag-html {
+  background: linear-gradient(135deg, #059669, #10b981) !important;
+  border: 1px solid #34d399 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Tag Roxa CSS do lado esquerdo acima da numeração */
+.church-code-tag.tag-css {
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6) !important;
+  border: 1px solid #a78bfa !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Campo de busca integrado no cabeçalho de cada editor (sem botão, busca com Enter) */
+.church-editor-search-box {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  position: relative !important;
+}
+
+.church-editor-search-icon {
+  position: absolute !important;
+  left: 8px !important;
   color: #60a5fa !important;
+  pointer-events: none !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
-.church-code-modal-wrapper .gjs-cm-editor#gjs-cm-css #gjs-cm-title {
-  color: #34d399 !important;
+.church-code-inline-search {
+  width: 210px !important;
+  height: 27px !important;
+  background-color: #0b0b12 !important;
+  border: 1px solid #2d2d40 !important;
+  border-radius: 6px !important;
+  padding: 4px 8px 4px 26px !important;
+  color: #ffffff !important;
+  font-size: 0.78rem !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+  box-sizing: border-box !important;
 }
 
-/* O editor CodeMirror preenche 100% do espaço vertical disponível */
+.church-code-inline-search:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
+  width: 250px !important;
+}
+
+.church-code-inline-search::placeholder {
+  color: #6b7280 !important;
+  font-size: 0.76rem !important;
+}
+
+.church-search-match-count {
+  font-size: 0.72rem !important;
+  color: #38bdf8 !important;
+  background-color: #1e1e2d !important;
+  border: 1px solid #2f2f45 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+.church-search-match-count.is-empty {
+  color: #f87171 !important;
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+/* O editor CodeMirror preenche o espaço restante da coluna perfeitamente */
 .church-code-modal-wrapper .CodeMirror {
-  flex: 1 !important;
-  height: 100% !important;
+  flex: 1 1 0% !important;
+  height: calc(100% - 40px) !important;
   min-height: 0 !important;
   font-family: Consolas, "Fira Code", Monaco, "Courier New", monospace !important;
   font-size: 13.5px !important;
   line-height: 1.5 !important;
   border-radius: 0 !important;
   background-color: #0f0f16 !important;
+  overflow: hidden !important;
+}
+
+.church-code-modal-wrapper .CodeMirror-scroll {
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
 }
 
 .church-code-modal-wrapper .CodeMirror-gutters {
@@ -1368,32 +1321,35 @@ body {
   border-radius: 3px;
 }
 
-/* Rodapé do Modal com aviso e botões */
+/* Rodapé do Modal com aviso e botões - Sempre visível e nunca cortado */
 .church-code-modal-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 10px;
-  border-top: 1px solid #232332;
-  flex-shrink: 0;
-  gap: 12px;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 4px 4px 0 4px !important;
+  border-top: 1px solid #232332 !important;
+  box-sizing: border-box !important;
 }
 
 .church-code-modal-hint {
-  font-size: 0.8rem;
-  color: #94a3b8;
+  font-size: 0.8rem !important;
+  color: #94a3b8 !important;
 }
 
 .church-code-modal-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
+  display: flex !important;
+  gap: 10px !important;
+  align-items: center !important;
 }
 
 .church-code-modal-actions .btn-save-code {
   background-color: #3b82f6 !important;
   color: #ffffff !important;
-  padding: 8px 22px !important;
+  padding: 7px 20px !important;
   border-radius: 6px !important;
   font-weight: 600 !important;
   font-size: 0.85rem !important;

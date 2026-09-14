@@ -78,6 +78,57 @@ export const HomeEditor = () => {
   const [isNewPageModalOpen, setIsNewPageModalOpen] = useState(false);
   const [newPageData, setNewPageData] = useState({ title: '', slug: '' });
 
+  // Modal de Confirmação para Excluir Imagem da Pasta Uploads
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({
+    isOpen: false,
+    filename: '',
+    src: '',
+    assetEl: null
+  });
+  const [isDeletingAsset, setIsDeletingAsset] = useState(false);
+
+  const handleCancelDelete = () => {
+    if (isDeletingAsset) return;
+    setDeleteConfirmModal({ isOpen: false, filename: '', src: '', assetEl: null });
+  };
+
+  const handleConfirmDelete = async () => {
+    const filename = deleteConfirmModal.filename;
+    if (!filename) return;
+
+    setIsDeletingAsset(true);
+    try {
+      await api.deleteAsset(filename);
+
+      // 1. Remove o asset do AssetManager em memória do GrapesJS
+      if (editorRef.current && editorRef.current.AssetManager) {
+        const am = editorRef.current.AssetManager;
+        const allAssets = am.getAll();
+        const targetModel = allAssets.find((a) => {
+          const aSrc = a.get ? (a.get('src') || '') : (a.src || '');
+          const aName = a.get ? (a.get('name') || '') : (a.name || '');
+          return aSrc.includes(filename) || aName === filename;
+        });
+        if (targetModel) {
+          am.remove(targetModel);
+        }
+      }
+
+      // 2. Remove o card DOM da galeria
+      if (deleteConfirmModal.assetEl && deleteConfirmModal.assetEl.parentNode) {
+        deleteConfirmModal.assetEl.remove();
+      }
+
+      showToast('success', `A imagem "${filename}" foi excluída com sucesso da pasta de uploads.`, 'Imagem Excluída!');
+      setDeleteConfirmModal({ isOpen: false, filename: '', src: '', assetEl: null });
+    } catch (err) {
+      console.error('Erro ao excluir imagem:', err);
+      showToast('error', `Falha ao excluir imagem do servidor: ${err.message}`, 'Erro na Exclusão');
+    } finally {
+      setIsDeletingAsset(false);
+    }
+  };
+
   // Formata o código HTML com aninhamento e identação limpos
   const formatHtml = (html) => {
     if (!html) return '';
@@ -256,15 +307,13 @@ export const HomeEditor = () => {
     }
   };
 
-  // Injeta o botão "Copiar Link" abaixo do nome de cada foto na galeria do GrapesJS
-  const attachCopyButtons = (editor) => {
+  // Injeta o botão "Copiar Link" e intercepta o botão "X" de exclusão na galeria de fotos do GrapesJS
+  const attachAssetInteractions = (editor) => {
     if (!editor) return;
     const assetElements = document.querySelectorAll('.gjs-am-asset');
     if (!assetElements.length) return;
 
     assetElements.forEach((el) => {
-      if (el.querySelector('.btn-copy-asset-url')) return;
-
       // 1. Tenta extrair a URL da imagem da prévia
       let url = '';
       const preview = el.querySelector('.gjs-am-asset__preview, [class*="preview"], img');
@@ -291,7 +340,42 @@ export const HomeEditor = () => {
         }
       }
 
-      if (!url) return;
+      // 3. Intercepta o botão "X" (.gjs-am-close) para confirmar antes de excluir do servidor
+      const closeBtn = el.querySelector('.gjs-am-close, [data-toggle="asset-remove"]');
+      if (closeBtn && !closeBtn.dataset.deleteIntercepted) {
+        closeBtn.dataset.deleteIntercepted = 'true';
+        closeBtn.title = 'Excluir imagem da pasta upload';
+
+        closeBtn.addEventListener(
+          'click',
+          (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+
+            let filename = '';
+            if (url) {
+              const cleanUrl = url.split('?')[0];
+              filename = decodeURIComponent(cleanUrl.split('/').pop() || '');
+            }
+            if (!filename) {
+              const meta = el.querySelector('.gjs-am-asset__meta, .gjs-am-meta, .gjs-am-name');
+              filename = meta ? meta.textContent.trim() : '';
+            }
+
+            setDeleteConfirmModal({
+              isOpen: true,
+              filename,
+              src: url,
+              assetEl: el
+            });
+          },
+          true
+        );
+      }
+
+      // 4. Injeta botão "Copiar Link" caso ainda não exista
+      if (el.querySelector('.btn-copy-asset-url') || !url) return;
 
       const copyBtn = document.createElement('button');
       copyBtn.className = 'btn-copy-asset-url';
@@ -1314,16 +1398,16 @@ export const HomeEditor = () => {
       showToast('error', `Erro na galeria: ${msg}`, 'Erro de Upload');
     });
 
-    // Recarrega galeria de fotos sempre que abrir a galeria no editor e injeta botões de copiar link
+    // Recarrega galeria de fotos sempre que abrir a galeria no editor e injeta botões e interações
     editor.on('run:open-assets', async () => {
       await loadExistingAssets(editor);
-      setTimeout(() => attachCopyButtons(editor), 100);
-      setTimeout(() => attachCopyButtons(editor), 300);
+      setTimeout(() => attachAssetInteractions(editor), 100);
+      setTimeout(() => attachAssetInteractions(editor), 300);
     });
 
-    // Observer contínuo para detectar modal da galeria e anexar botões de copiar
+    // Observer contínuo para detectar modal da galeria e anexar botões e eventos
     assetsObserver = new MutationObserver(() => {
-      attachCopyButtons(editor);
+      attachAssetInteractions(editor);
     });
     assetsObserver.observe(document.body, { childList: true, subtree: true });
 
@@ -1864,6 +1948,206 @@ export const HomeEditor = () => {
         </div>
       )}
 
+      {/* Modal Popup de Confirmação para Excluir Imagem da Pasta Uploads */}
+      {deleteConfirmModal.isOpen && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.78)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999
+          }}
+          onClick={handleCancelDelete}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#161622',
+              border: '1px solid #2e2e42',
+              borderRadius: '12px',
+              padding: '1.75rem',
+              maxWidth: '440px',
+              width: '90vw',
+              textAlign: 'center',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              animation: 'fadeIn 0.2s ease-out'
+            }}
+          >
+            {/* Ícone de Lixeira / Alerta */}
+            <div
+              style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                color: '#ef4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1rem',
+                border: '1px solid rgba(239, 68, 68, 0.25)'
+              }}
+            >
+              <Trash2 size={26} />
+            </div>
+
+            {/* Pergunta exata solicitada pelo usuário */}
+            <h3
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: '#f8fafc',
+                marginBottom: '0.5rem',
+                lineHeight: 1.3
+              }}
+            >
+              Tem certeza que quer excluir essa imagem?
+            </h3>
+
+            <p
+              style={{
+                fontSize: '0.85rem',
+                color: '#94a3b8',
+                marginBottom: '1.25rem',
+                lineHeight: 1.4
+              }}
+            >
+              Esta foto será excluída permanentemente da pasta <code>upload</code> do servidor.
+            </p>
+
+            {/* Prévia e Nome do arquivo */}
+            {deleteConfirmModal.src && (
+              <div
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '10px 14px',
+                  backgroundColor: '#0c0c12',
+                  borderRadius: '8px',
+                  border: '1px solid #28283a',
+                  marginBottom: '1.5rem',
+                  boxSizing: 'border-box',
+                  textAlign: 'left'
+                }}
+              >
+                <img
+                  src={deleteConfirmModal.src}
+                  alt={deleteConfirmModal.filename}
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    objectFit: 'cover',
+                    borderRadius: '6px',
+                    border: '1px solid #333348',
+                    backgroundColor: '#000000',
+                    flexShrink: 0
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      color: '#e2e8f0',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                    title={deleteConfirmModal.filename}
+                  >
+                    {deleteConfirmModal.filename}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                    Pasta: upload
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Botões: Não e Sim */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '12px',
+                width: '100%',
+                justifyContent: 'center'
+              }}
+            >
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleCancelDelete}
+                disabled={isDeletingAsset}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1.25rem',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  fontSize: '0.92rem',
+                  cursor: isDeletingAsset ? 'not-allowed' : 'pointer',
+                  backgroundColor: '#222230',
+                  color: '#e2e8f0',
+                  border: '1px solid #38384e',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Não
+              </button>
+
+              <button
+                type="button"
+                className="btn-danger"
+                onClick={handleConfirmDelete}
+                disabled={isDeletingAsset}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1.25rem',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  fontSize: '0.92rem',
+                  cursor: isDeletingAsset ? 'not-allowed' : 'pointer',
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4)',
+                  transition: 'all 0.15s ease',
+                  opacity: isDeletingAsset ? 0.7 : 1
+                }}
+              >
+                {isDeletingAsset ? (
+                  <span>Excluindo...</span>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    <span>Sim</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pop-up Flutuante de Notificação / Erro / Sucesso com Alta Visibilidade */}
       {toastNotification && (

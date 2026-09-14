@@ -138,7 +138,7 @@ router.post(
  * DELETE /api/uploads/:filename
  * Remove uma imagem do servidor
  */
-router.delete('/:filename', authMiddleware, roleMiddleware(['admin']), (req, res) => {
+router.delete('/:filename', authMiddleware, roleMiddleware(['admin', 'editor']), (req, res) => {
   const { filename } = req.params;
   const filePath = path.join(uploadDir, path.basename(filename));
 

@@ -974,8 +974,8 @@ body {
   right: 6px !important;
   background: rgba(0, 0, 0, 0.75) !important;
   color: #ffffff !important;
-  width: 22px !important;
-  height: 22px !important;
+  width: 24px !important;
+  height: 24px !important;
   border-radius: 50% !important;
   display: none !important;
   align-items: center !important;
@@ -984,10 +984,19 @@ body {
   line-height: 1 !important;
   z-index: 5 !important;
   opacity: 1 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
 }
 
 .gjs-am-asset:hover .gjs-am-close {
   display: flex !important;
+}
+
+.gjs-am-close:hover {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  transform: scale(1.12) !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5) !important;
 }
 
 /* Botão Copiar Link abaixo do nome */

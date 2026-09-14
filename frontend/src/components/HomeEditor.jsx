@@ -929,12 +929,12 @@ export const HomeEditor = () => {
           const container = document.createElement('div');
           container.className = 'church-code-modal-wrapper';
 
-          // Colunas dos editores HTML e CSS
+          // Colunas dos editores HTML e CSS lado a lado
           const editorsCont = document.createElement('div');
-          editorsCont.className = `${pfx}export-dl`;
+          editorsCont.className = 'church-code-editors-row';
 
-          const oHtmlEd = this.buildEditor(ed, 'htmlmixed', 'hopscotch', 'HTML');
-          const oCssEd = this.buildEditor(ed, 'css', 'hopscotch', 'CSS');
+          const oHtmlEd = this.buildCodeColumn(ed, 'htmlmixed', true, 'HTML');
+          const oCssEd = this.buildCodeColumn(ed, 'css', false, 'CSS');
           this.htmlEditor = oHtmlEd.model;
           this.cssEditor = oCssEd.model;
           this.htmlSearchInput = oHtmlEd.searchInput;
@@ -1196,67 +1196,71 @@ export const HomeEditor = () => {
         return { clearMarks, doSearch, searchInput };
       },
 
-      buildEditor(ed, codeName, theme, label) {
+      buildCodeColumn(ed, codeName, isHtml, label) {
         const cm = ed.CodeManager;
-        const model = cm.createViewer({
+        const viewer = cm.createViewer({
           label,
           codeName,
-          theme: theme || 'hopscotch',
+          theme: 'hopscotch',
           readOnly: false,
           autoFormat: true
         });
-        const el = new cm.EditorView({
-          model,
-          config: cm.getConfig()
-        }).render().el;
 
-        // Customiza a barra superior: Tag Verde/Roxa acima da numeração + Campo de Busca sem botão (Enter)
-        const isHtml = codeName === 'htmlmixed';
-        const titleEl = el.querySelector('#gjs-cm-title');
-        let searchInput = null;
-        let countBadge = null;
+        const col = document.createElement('div');
+        col.className = 'church-code-col';
 
-        if (titleEl) {
-          titleEl.innerHTML = '';
-          titleEl.className = 'church-editor-top-bar';
+        // Barra Superior: Tag Verde/Roxa do lado esquerdo acima da numeração + Campo de Busca sem botão (Enter)
+        const topBar = document.createElement('div');
+        topBar.className = 'church-editor-top-bar';
 
-          // Tag verde (HTML) ou roxa (CSS) acima da numeração
-          const tagEl = document.createElement('div');
-          tagEl.className = isHtml ? 'church-code-tag tag-html' : 'church-code-tag tag-css';
-          tagEl.innerText = isHtml ? 'HTML' : 'CSS';
+        // Tag Verde (HTML) ou Roxa (CSS)
+        const tagEl = document.createElement('div');
+        tagEl.className = isHtml ? 'church-code-tag tag-html' : 'church-code-tag tag-css';
+        tagEl.innerText = isHtml ? 'HTML' : 'CSS';
 
-          // Campo de busca sem botão
-          const searchBox = document.createElement('div');
-          searchBox.className = 'church-editor-search-box';
+        // Campo de busca sem botão (Enter para localizar)
+        const searchBox = document.createElement('div');
+        searchBox.className = 'church-editor-search-box';
 
-          const icon = document.createElement('span');
-          icon.className = 'church-editor-search-icon';
-          icon.innerHTML = `
-            <svg style="width:13px;height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          `;
+        const icon = document.createElement('span');
+        icon.className = 'church-editor-search-icon';
+        icon.innerHTML = `
+          <svg style="width:13px;height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        `;
 
-          searchInput = document.createElement('input');
-          searchInput.type = 'text';
-          searchInput.className = 'church-code-inline-search';
-          searchInput.placeholder = isHtml ? 'Buscar no HTML (Enter)...' : 'Buscar no CSS (Enter)...';
-          searchInput.spellcheck = false;
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'church-code-inline-search';
+        searchInput.placeholder = isHtml ? 'Buscar no HTML (Enter)...' : 'Buscar no CSS (Enter)...';
+        searchInput.spellcheck = false;
 
-          countBadge = document.createElement('span');
-          countBadge.className = 'church-search-match-count';
-          countBadge.style.display = 'none';
+        const countBadge = document.createElement('span');
+        countBadge.className = 'church-search-match-count';
+        countBadge.style.display = 'none';
 
-          searchBox.appendChild(icon);
-          searchBox.appendChild(searchInput);
-          searchBox.appendChild(countBadge);
+        searchBox.appendChild(icon);
+        searchBox.appendChild(searchInput);
+        searchBox.appendChild(countBadge);
 
-          titleEl.appendChild(tagEl);
-          titleEl.appendChild(searchBox);
-        }
+        topBar.appendChild(tagEl);
+        topBar.appendChild(searchBox);
+        col.appendChild(topBar);
 
-        return { model, el, searchInput, countBadge };
+        // Área do Editor CodeMirror com suporte total à barra de rolagem
+        const codeWrap = document.createElement('div');
+        codeWrap.className = 'church-editor-code-wrap';
+        codeWrap.appendChild(viewer.getElement());
+        col.appendChild(codeWrap);
+
+        return {
+          model: viewer,
+          el: col,
+          searchInput,
+          countBadge
+        };
       }
     });
 

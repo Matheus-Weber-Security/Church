@@ -29,7 +29,8 @@ import {
   Sparkles,
   Layers,
   X,
-  Pencil
+  Pencil,
+  Search
 } from 'lucide-react';
 
 export const HomeEditor = () => {
@@ -173,6 +174,301 @@ export const HomeEditor = () => {
       .replace(/  \n/g, '')
       .replace(/\n\s*\n\s*\n/g, '\n\n')
       .trim();
+  };
+
+  // ==========================================
+  // MODAL NATIVO REACT DE EDIÇÃO DE CÓDIGO LIVRE (HTML & CSS)
+  // ==========================================
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
+  const htmlHostRef = useRef(null);
+  const cssHostRef = useRef(null);
+  const htmlViewerRef = useRef(null);
+  const cssViewerRef = useRef(null);
+  const htmlSearchInputRef = useRef(null);
+  const cssSearchInputRef = useRef(null);
+
+  const [htmlSearchQuery, setHtmlSearchQuery] = useState('');
+  const [cssSearchQuery, setCssSearchQuery] = useState('');
+  const [htmlMatchInfo, setHtmlMatchInfo] = useState({ current: 0, total: 0 });
+  const [cssMatchInfo, setCssMatchInfo] = useState({ current: 0, total: 0 });
+
+  const htmlMatchesRef = useRef([]);
+  const htmlCurrentMatchIdxRef = useRef(-1);
+  const htmlActiveMarkerRef = useRef(null);
+  const htmlAllMarkersRef = useRef([]);
+
+  const cssMatchesRef = useRef([]);
+  const cssCurrentMatchIdxRef = useRef(-1);
+  const cssActiveMarkerRef = useRef(null);
+  const cssAllMarkersRef = useRef([]);
+
+  const clearEditorMarks = (type) => {
+    if (type === 'html') {
+      htmlAllMarkersRef.current.forEach((m) => { try { m.clear(); } catch (e) {} });
+      htmlAllMarkersRef.current = [];
+      if (htmlActiveMarkerRef.current) {
+        try { htmlActiveMarkerRef.current.clear(); } catch (e) {}
+        htmlActiveMarkerRef.current = null;
+      }
+      htmlMatchesRef.current = [];
+      htmlCurrentMatchIdxRef.current = -1;
+      setHtmlMatchInfo({ current: 0, total: 0 });
+    } else {
+      cssAllMarkersRef.current.forEach((m) => { try { m.clear(); } catch (e) {} });
+      cssAllMarkersRef.current = [];
+      if (cssActiveMarkerRef.current) {
+        try { cssActiveMarkerRef.current.clear(); } catch (e) {}
+        cssActiveMarkerRef.current = null;
+      }
+      cssMatchesRef.current = [];
+      cssCurrentMatchIdxRef.current = -1;
+      setCssMatchInfo({ current: 0, total: 0 });
+    }
+  };
+
+  const jumpToMatch = (type, idx) => {
+    const isHtml = type === 'html';
+    const matches = isHtml ? htmlMatchesRef.current : cssMatchesRef.current;
+    const viewer = isHtml ? htmlViewerRef.current : cssViewerRef.current;
+    if (!matches.length || !viewer) return;
+
+    const cm = viewer.getEditor && viewer.getEditor();
+    if (!cm) return;
+
+    let targetIdx = idx;
+    if (targetIdx >= matches.length) targetIdx = 0;
+    if (targetIdx < 0) targetIdx = matches.length - 1;
+
+    if (isHtml) {
+      htmlCurrentMatchIdxRef.current = targetIdx;
+      setHtmlMatchInfo({ current: targetIdx + 1, total: matches.length });
+    } else {
+      cssCurrentMatchIdxRef.current = targetIdx;
+      setCssMatchInfo({ current: targetIdx + 1, total: matches.length });
+    }
+
+    const m = matches[targetIdx];
+    const activeMarkerRef = isHtml ? htmlActiveMarkerRef : cssActiveMarkerRef;
+    if (activeMarkerRef.current) {
+      try { activeMarkerRef.current.clear(); } catch (e) {}
+      activeMarkerRef.current = null;
+    }
+
+    try {
+      activeMarkerRef.current = cm.markText(
+        { line: m.line, ch: m.startCh },
+        { line: m.line, ch: m.endCh },
+        { className: 'cm-search-highlight-active' }
+      );
+      cm.scrollIntoView({ line: m.line, ch: m.startCh }, 140);
+      cm.setSelection({ line: m.line, ch: m.startCh }, { line: m.line, ch: m.endCh });
+    } catch (e) {}
+  };
+
+  const performSearch = (type, queryText) => {
+    const isHtml = type === 'html';
+    const viewer = isHtml ? htmlViewerRef.current : cssViewerRef.current;
+    if (!viewer) return;
+    const cm = viewer.getEditor && viewer.getEditor();
+    if (!cm) return;
+
+    clearEditorMarks(type);
+
+    const query = (queryText || '').trim();
+    if (!query) return;
+
+    const lowerQuery = query.toLowerCase();
+    const lineCount = cm.lineCount();
+    const found = [];
+    const allMarkers = [];
+
+    for (let line = 0; line < lineCount; line++) {
+      const text = cm.getLine(line);
+      let pos = text.toLowerCase().indexOf(lowerQuery);
+      while (pos !== -1) {
+        found.push({ line, startCh: pos, endCh: pos + query.length });
+        pos = text.toLowerCase().indexOf(lowerQuery, pos + 1);
+      }
+    }
+
+    if (found.length === 0) {
+      if (isHtml) {
+        setHtmlMatchInfo({ current: 0, total: 0 });
+      } else {
+        setCssMatchInfo({ current: 0, total: 0 });
+      }
+      return;
+    }
+
+    found.forEach((m) => {
+      try {
+        const marker = cm.markText(
+          { line: m.line, ch: m.startCh },
+          { line: m.line, ch: m.endCh },
+          { className: 'cm-search-highlight-all' }
+        );
+        allMarkers.push(marker);
+      } catch (e) {}
+    });
+
+    if (isHtml) {
+      htmlMatchesRef.current = found;
+      htmlAllMarkersRef.current = allMarkers;
+    } else {
+      cssMatchesRef.current = found;
+      cssAllMarkersRef.current = allMarkers;
+    }
+
+    jumpToMatch(type, 0);
+  };
+
+  const handleSearchKeyDown = (type, e) => {
+    const isHtml = type === 'html';
+    const query = isHtml ? htmlSearchQuery : cssSearchQuery;
+    const matches = isHtml ? htmlMatchesRef.current : cssMatchesRef.current;
+    const currentIdx = isHtml ? htmlCurrentMatchIdxRef.current : cssCurrentMatchIdxRef.current;
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!matches.length) {
+        performSearch(type, query);
+      } else {
+        if (e.shiftKey) {
+          jumpToMatch(type, currentIdx - 1);
+        } else {
+          jumpToMatch(type, currentIdx + 1);
+        }
+      }
+    } else if (e.key === 'Escape') {
+      if (isHtml) {
+        setHtmlSearchQuery('');
+      } else {
+        setCssSearchQuery('');
+      }
+      clearEditorMarks(type);
+      e.target.blur();
+    }
+  };
+
+  // Inicializa visualizadores CodeMirror dentro do modal React com tema Hopscotch e realce oficial
+  useEffect(() => {
+    if (!isCodeModalOpen || !editorRef.current) return;
+
+    const ed = editorRef.current;
+    const cm = ed.CodeManager;
+
+    setHtmlSearchQuery('');
+    setCssSearchQuery('');
+    setHtmlMatchInfo({ current: 0, total: 0 });
+    setCssMatchInfo({ current: 0, total: 0 });
+    clearEditorMarks('html');
+    clearEditorMarks('css');
+
+    // Cria os visualizadores CodeMirror usando a API nativa do GrapesJS
+    const htmlViewer = cm.createViewer({
+      codeName: 'htmlmixed',
+      theme: 'hopscotch',
+      readOnly: false,
+      autoFormat: true
+    });
+
+    const cssViewer = cm.createViewer({
+      codeName: 'css',
+      theme: 'hopscotch',
+      readOnly: false,
+      autoFormat: true
+    });
+
+    htmlViewerRef.current = htmlViewer;
+    cssViewerRef.current = cssViewer;
+
+    if (htmlHostRef.current) {
+      htmlHostRef.current.innerHTML = '';
+      htmlHostRef.current.appendChild(htmlViewer.getElement());
+    }
+
+    if (cssHostRef.current) {
+      cssHostRef.current.innerHTML = '';
+      cssHostRef.current.appendChild(cssViewer.getElement());
+    }
+
+    // Carrega o código atual da página formatado e aninhado
+    const rawHtml = ed.getHtml() || '';
+    const rawCss = ed.getCss() || '';
+    htmlViewer.setContent(formatHtml(rawHtml));
+    cssViewer.setContent(formatCss(rawCss));
+
+    const t1 = setTimeout(() => {
+      const htmlCm = htmlViewer.getEditor && htmlViewer.getEditor();
+      if (htmlCm) {
+        htmlCm.setOption('readOnly', false);
+        htmlCm.setOption('lineWrapping', true);
+        htmlCm.setOption('extraKeys', {
+          'Ctrl-F': () => htmlSearchInputRef.current?.focus(),
+          'Cmd-F': () => htmlSearchInputRef.current?.focus()
+        });
+        htmlCm.refresh();
+      }
+
+      const cssCm = cssViewer.getEditor && cssViewer.getEditor();
+      if (cssCm) {
+        cssCm.setOption('readOnly', false);
+        cssCm.setOption('lineWrapping', true);
+        cssCm.setOption('extraKeys', {
+          'Ctrl-F': () => cssSearchInputRef.current?.focus(),
+          'Cmd-F': () => cssSearchInputRef.current?.focus()
+        });
+        cssCm.refresh();
+      }
+    }, 60);
+
+    const t2 = setTimeout(() => {
+      htmlViewer.getEditor && htmlViewer.getEditor().refresh();
+      cssViewer.getEditor && cssViewer.getEditor().refresh();
+    }, 200);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearEditorMarks('html');
+      clearEditorMarks('css');
+      htmlViewerRef.current = null;
+      cssViewerRef.current = null;
+    };
+  }, [isCodeModalOpen]);
+
+  // Fecha modal com Escape caso a barra de busca não esteja ativa
+  useEffect(() => {
+    if (!isCodeModalOpen) return;
+    const handleGlobalEsc = (e) => {
+      if (e.key === 'Escape') {
+        if (
+          document.activeElement !== htmlSearchInputRef.current &&
+          document.activeElement !== cssSearchInputRef.current
+        ) {
+          setIsCodeModalOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleGlobalEsc);
+    return () => window.removeEventListener('keydown', handleGlobalEsc);
+  }, [isCodeModalOpen]);
+
+  // Aplica o código editado no editor GrapesJS e salva
+  const handleSaveCodeModal = () => {
+    if (!editorRef.current || !htmlViewerRef.current || !cssViewerRef.current) return;
+    try {
+      const newHtml = htmlViewerRef.current.getContent();
+      const newCss = cssViewerRef.current.getContent();
+      editorRef.current.setComponents(newHtml);
+      editorRef.current.setStyle(newCss);
+      setTimeout(() => injectCanvasStyles(editorRef.current), 150);
+      setIsCodeModalOpen(false);
+      showToast('success', 'Código HTML e CSS atualizado no editor com sucesso!', 'Código Aplicado!');
+    } catch (err) {
+      console.error('Erro ao salvar código no editor:', err);
+      showToast('error', `Falha ao aplicar alterações: ${err.message}`, 'Erro no Código');
+    }
   };
 
   // Carrega lista de páginas
@@ -919,348 +1215,10 @@ export const HomeEditor = () => {
       }
     });
 
-    // Personaliza comando 'export-template' (Ver Código) com tela cheia, tags verde/roxa e busca inline sem corte
+    // Comando 'export-template' abre o Modal Nativo em React com CodeMirror e Syntax Highlighting oficial
     editor.Commands.add('export-template', {
-      run(ed) {
-        const modal = ed.Modal;
-        const pfx = ed.getConfig().stylePrefix || 'gjs-';
-
-        if (!this.codeContainer) {
-          const container = document.createElement('div');
-          container.className = 'church-code-modal-wrapper';
-
-          // Colunas dos editores HTML e CSS lado a lado
-          const editorsCont = document.createElement('div');
-          editorsCont.className = 'church-code-editors-row';
-
-          const oHtmlEd = this.buildCodeColumn(ed, 'htmlmixed', true, 'HTML');
-          const oCssEd = this.buildCodeColumn(ed, 'css', false, 'CSS');
-          this.htmlEditor = oHtmlEd.model;
-          this.cssEditor = oCssEd.model;
-          this.htmlSearchInput = oHtmlEd.searchInput;
-          this.htmlCountBadge = oHtmlEd.countBadge;
-          this.cssSearchInput = oCssEd.searchInput;
-          this.cssCountBadge = oCssEd.countBadge;
-
-          editorsCont.appendChild(oHtmlEd.el);
-          editorsCont.appendChild(oCssEd.el);
-          container.appendChild(editorsCont);
-
-          // Rodapé do modal com aviso e botões Cancelar e Salvar Código
-          const footer = document.createElement('div');
-          footer.className = 'church-code-modal-footer';
-
-          const hint = document.createElement('span');
-          hint.className = 'church-code-modal-hint';
-          hint.innerHTML = '💡 Digite nos campos acima e aperte <strong>Enter</strong> para localizar no código (ou <strong>Shift+Enter</strong> para anterior).';
-
-          const btnContainer = document.createElement('div');
-          btnContainer.className = 'church-code-modal-actions';
-
-          const btnCancel = document.createElement('button');
-          btnCancel.type = 'button';
-          btnCancel.className = 'btn-secondary';
-          btnCancel.innerText = 'Cancelar';
-          btnCancel.onclick = () => modal.close();
-
-          const btnSave = document.createElement('button');
-          btnSave.type = 'button';
-          btnSave.className = 'btn-save-code';
-          btnSave.innerHTML = `
-            <svg style="width:14px;height:14px;display:inline-block;vertical-align:middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-              <polyline points="17 21 17 13 7 13 7 21"/>
-              <polyline points="7 3 7 8 15 8"/>
-            </svg>
-            <span style="vertical-align:middle;">Salvar Código</span>
-          `;
-          btnSave.onclick = () => {
-            const newHtml = this.htmlEditor.getContent();
-            const newCss = this.cssEditor.getContent();
-            ed.setComponents(newHtml);
-            ed.setStyle(newCss);
-            setTimeout(() => injectCanvasStyles(ed), 150);
-            modal.close();
-            showToast('success', 'Código HTML e CSS atualizado no editor com sucesso!', 'Código Aplicado!');
-          };
-
-          btnContainer.appendChild(btnCancel);
-          btnContainer.appendChild(btnSave);
-          footer.appendChild(hint);
-          footer.appendChild(btnContainer);
-          container.appendChild(footer);
-
-          this.codeContainer = container;
-        }
-
-        // Abre o modal GrapesJS sem a frase "Editor de Código Livre (HTML & CSS)"
-        modal.open({
-          title: '',
-          content: this.codeContainer
-        });
-
-        // Adiciona classe de tela cheia abaixo do menu principal (.top-navbar = 68px)
-        const modalContentEl = modal.getContentEl();
-        const dialogEl = modalContentEl?.closest('.gjs-mdl-dialog');
-        const containerEl = modalContentEl?.closest('.gjs-mdl-container');
-        if (dialogEl) dialogEl.classList.add('gjs-mdl-dialog-code-full');
-        if (containerEl) containerEl.classList.add('gjs-mdl-container-code-full');
-
-        // Garante a remoção das classes e limpeza de busca ao fechar o modal
-        const cleanupFullClasses = () => {
-          if (dialogEl) dialogEl.classList.remove('gjs-mdl-dialog-code-full');
-          if (containerEl) containerEl.classList.remove('gjs-mdl-container-code-full');
-          if (this.htmlSearchHandler) this.htmlSearchHandler.clearMarks();
-          if (this.cssSearchHandler) this.cssSearchHandler.clearMarks();
-          if (this.htmlSearchInput) this.htmlSearchInput.value = '';
-          if (this.cssSearchInput) this.cssSearchInput.value = '';
-        };
-
-        modal.getModel().once('change:open', (m) => {
-          if (!m.get('open')) cleanupFullClasses();
-        });
-
-        // Formata e carrega o código no CodeMirror com indentação e cores
-        const rawHtml = ed.getHtml();
-        const rawCss = ed.getCss();
-        this.htmlEditor.setContent(formatHtml(rawHtml));
-        this.cssEditor.setContent(formatCss(rawCss));
-
-        // Permite digitação livre nos editores CodeMirror e configura o buscador inline
-        setTimeout(() => {
-          const htmlCm = this.htmlEditor.getEditor && this.htmlEditor.getEditor();
-          if (htmlCm) {
-            htmlCm.setOption('readOnly', false);
-            htmlCm.refresh();
-            if (!this.htmlSearchHandler && this.htmlSearchInput) {
-              this.htmlSearchHandler = this.setupSearch(htmlCm, this.htmlSearchInput, this.htmlCountBadge);
-            }
-          }
-          const cssCm = this.cssEditor.getEditor && this.cssEditor.getEditor();
-          if (cssCm) {
-            cssCm.setOption('readOnly', false);
-            cssCm.refresh();
-            if (!this.cssSearchHandler && this.cssSearchInput) {
-              this.cssSearchHandler = this.setupSearch(cssCm, this.cssSearchInput, this.cssCountBadge);
-            }
-          }
-        }, 80);
-
-        // Segundo refresh para garantir cálculo perfeito de dimensões após render do modal
-        setTimeout(() => {
-          const htmlCm = this.htmlEditor.getEditor && this.htmlEditor.getEditor();
-          const cssCm = this.cssEditor.getEditor && this.cssEditor.getEditor();
-          if (htmlCm) htmlCm.refresh();
-          if (cssCm) cssCm.refresh();
-        }, 220);
-      },
-
-      setupSearch(cmInstance, searchInput, countBadge) {
-        if (!cmInstance || !searchInput) return { clearMarks: () => {} };
-
-        let matches = [];
-        let currentIdx = -1;
-        let activeMarker = null;
-
-        const clearMarks = () => {
-          if (cmInstance && cmInstance.getAllMarks) {
-            cmInstance.getAllMarks().forEach((m) => m.clear());
-          }
-          matches = [];
-          currentIdx = -1;
-          activeMarker = null;
-          if (countBadge) {
-            countBadge.innerText = '';
-            countBadge.style.display = 'none';
-          }
-        };
-
-        const jumpTo = (idx) => {
-          if (!matches.length) return;
-          if (idx >= matches.length) idx = 0;
-          if (idx < 0) idx = matches.length - 1;
-          currentIdx = idx;
-
-          const m = matches[idx];
-
-          if (activeMarker) {
-            try { activeMarker.clear(); } catch (e) {}
-            activeMarker = null;
-          }
-
-          try {
-            if (m.marker) m.marker.clear();
-            m.marker = cmInstance.markText(
-              { line: m.line, ch: m.startCh },
-              { line: m.line, ch: m.endCh },
-              { className: 'cm-search-highlight-active' }
-            );
-            activeMarker = m.marker;
-          } catch (e) {}
-
-          try {
-            cmInstance.scrollIntoView({ line: m.line, ch: m.startCh }, 140);
-            cmInstance.setSelection({ line: m.line, ch: m.startCh }, { line: m.line, ch: m.endCh });
-          } catch (e) {}
-
-          if (countBadge) {
-            countBadge.innerText = `${idx + 1}/${matches.length}`;
-            countBadge.className = 'church-search-match-count';
-            countBadge.style.display = 'inline-block';
-          }
-        };
-
-        const doSearch = () => {
-          clearMarks();
-          const query = (searchInput.value || '').trim();
-          if (!query) return;
-
-          const lowerQuery = query.toLowerCase();
-          const lineCount = cmInstance.lineCount();
-          const found = [];
-
-          for (let line = 0; line < lineCount; line++) {
-            const text = cmInstance.getLine(line);
-            let pos = text.toLowerCase().indexOf(lowerQuery);
-            while (pos !== -1) {
-              found.push({
-                line,
-                startCh: pos,
-                endCh: pos + query.length
-              });
-              pos = text.toLowerCase().indexOf(lowerQuery, pos + 1);
-            }
-          }
-
-          matches = found;
-
-          if (found.length === 0) {
-            if (countBadge) {
-              countBadge.innerText = '0/0';
-              countBadge.className = 'church-search-match-count is-empty';
-              countBadge.style.display = 'inline-block';
-            }
-            return;
-          }
-
-          found.forEach((m) => {
-            try {
-              m.marker = cmInstance.markText(
-                { line: m.line, ch: m.startCh },
-                { line: m.line, ch: m.endCh },
-                { className: 'cm-search-highlight-all' }
-              );
-            } catch (e) {}
-          });
-
-          jumpTo(0);
-        };
-
-        let timer = null;
-        searchInput.oninput = () => {
-          clearTimeout(timer);
-          timer = setTimeout(doSearch, 120);
-        };
-
-        searchInput.onkeydown = (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            if (!matches.length) {
-              doSearch();
-            } else {
-              if (e.shiftKey) {
-                jumpTo(currentIdx - 1);
-              } else {
-                jumpTo(currentIdx + 1);
-              }
-            }
-          } else if (e.key === 'Escape') {
-            searchInput.value = '';
-            clearMarks();
-            searchInput.blur();
-          }
-        };
-
-        // Atalho Ctrl+F / Cmd+F para focar o campo de busca
-        cmInstance.setOption('extraKeys', {
-          'Ctrl-F': () => {
-            searchInput.focus();
-            searchInput.select();
-          },
-          'Cmd-F': () => {
-            searchInput.focus();
-            searchInput.select();
-          }
-        });
-
-        return { clearMarks, doSearch, searchInput };
-      },
-
-      buildCodeColumn(ed, codeName, isHtml, label) {
-        const cm = ed.CodeManager;
-        const viewer = cm.createViewer({
-          label,
-          codeName,
-          theme: 'hopscotch',
-          readOnly: false,
-          autoFormat: true
-        });
-
-        const col = document.createElement('div');
-        col.className = 'church-code-col';
-
-        // Barra Superior: Tag Verde/Roxa do lado esquerdo acima da numeração + Campo de Busca sem botão (Enter)
-        const topBar = document.createElement('div');
-        topBar.className = 'church-editor-top-bar';
-
-        // Tag Verde (HTML) ou Roxa (CSS)
-        const tagEl = document.createElement('div');
-        tagEl.className = isHtml ? 'church-code-tag tag-html' : 'church-code-tag tag-css';
-        tagEl.innerText = isHtml ? 'HTML' : 'CSS';
-
-        // Campo de busca sem botão (Enter para localizar)
-        const searchBox = document.createElement('div');
-        searchBox.className = 'church-editor-search-box';
-
-        const icon = document.createElement('span');
-        icon.className = 'church-editor-search-icon';
-        icon.innerHTML = `
-          <svg style="width:13px;height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-        `;
-
-        const searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.className = 'church-code-inline-search';
-        searchInput.placeholder = isHtml ? 'Buscar no HTML (Enter)...' : 'Buscar no CSS (Enter)...';
-        searchInput.spellcheck = false;
-
-        const countBadge = document.createElement('span');
-        countBadge.className = 'church-search-match-count';
-        countBadge.style.display = 'none';
-
-        searchBox.appendChild(icon);
-        searchBox.appendChild(searchInput);
-        searchBox.appendChild(countBadge);
-
-        topBar.appendChild(tagEl);
-        topBar.appendChild(searchBox);
-        col.appendChild(topBar);
-
-        // Área do Editor CodeMirror com suporte total à barra de rolagem
-        const codeWrap = document.createElement('div');
-        codeWrap.className = 'church-editor-code-wrap';
-        codeWrap.appendChild(viewer.getElement());
-        col.appendChild(codeWrap);
-
-        return {
-          model: viewer,
-          el: col,
-          searchInput,
-          countBadge
-        };
+      run() {
+        setIsCodeModalOpen(true);
       }
     });
 
@@ -1521,8 +1479,7 @@ export const HomeEditor = () => {
   };
 
   const handleViewCode = () => {
-    if (!editorRef.current) return;
-    editorRef.current.runCommand('export-template');
+    setIsCodeModalOpen(true);
   };
 
   return (
@@ -2051,6 +2008,124 @@ export const HomeEditor = () => {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nativo React de Edição de Código Livre (HTML & CSS) */}
+      {isCodeModalOpen && (
+        <div className="church-custom-code-modal-overlay">
+          <div className="church-custom-code-modal">
+            {/* Barra Superior Mínima com Botão Fechar */}
+            <div className="church-custom-code-header">
+              <button
+                type="button"
+                className="church-custom-code-close-btn"
+                onClick={() => setIsCodeModalOpen(false)}
+                title="Fechar (Esc)"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Corpo com Colunas HTML e CSS lado a lado */}
+            <div className="church-custom-code-body">
+              {/* Coluna HTML (Esquerda) */}
+              <div className="church-code-col">
+                <div className="church-editor-top-bar">
+                  <div className="church-code-tag tag-html">HTML</div>
+                  <div className="church-editor-search-box">
+                    <span className="church-editor-search-icon">
+                      <Search size={13} />
+                    </span>
+                    <input
+                      ref={htmlSearchInputRef}
+                      type="text"
+                      className="church-code-inline-search"
+                      placeholder="Buscar no HTML (Enter)..."
+                      value={htmlSearchQuery}
+                      onChange={(e) => {
+                        setHtmlSearchQuery(e.target.value);
+                        performSearch('html', e.target.value);
+                      }}
+                      onKeyDown={(e) => handleSearchKeyDown('html', e)}
+                      spellCheck={false}
+                    />
+                    {htmlMatchInfo.total > 0 && (
+                      <span className="church-search-match-count">
+                        {htmlMatchInfo.current}/{htmlMatchInfo.total}
+                      </span>
+                    )}
+                    {htmlSearchQuery.trim() && htmlMatchInfo.total === 0 && (
+                      <span className="church-search-match-count is-empty">
+                        0/0
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="church-editor-code-wrapper" ref={htmlHostRef} />
+              </div>
+
+              {/* Coluna CSS (Direita) */}
+              <div className="church-code-col">
+                <div className="church-editor-top-bar">
+                  <div className="church-code-tag tag-css">CSS</div>
+                  <div className="church-editor-search-box">
+                    <span className="church-editor-search-icon">
+                      <Search size={13} />
+                    </span>
+                    <input
+                      ref={cssSearchInputRef}
+                      type="text"
+                      className="church-code-inline-search"
+                      placeholder="Buscar no CSS (Enter)..."
+                      value={cssSearchQuery}
+                      onChange={(e) => {
+                        setCssSearchQuery(e.target.value);
+                        performSearch('css', e.target.value);
+                      }}
+                      onKeyDown={(e) => handleSearchKeyDown('css', e)}
+                      spellCheck={false}
+                    />
+                    {cssMatchInfo.total > 0 && (
+                      <span className="church-search-match-count">
+                        {cssMatchInfo.current}/{cssMatchInfo.total}
+                      </span>
+                    )}
+                    {cssSearchQuery.trim() && cssMatchInfo.total === 0 && (
+                      <span className="church-search-match-count is-empty">
+                        0/0
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="church-editor-code-wrapper" ref={cssHostRef} />
+              </div>
+            </div>
+
+            {/* Rodapé Fixo com Aviso e Botões Cancelar e Salvar Código */}
+            <div className="church-custom-code-footer">
+              <span className="church-custom-code-hint">
+                💡 Digite nos campos acima e aperte <strong>Enter</strong> para localizar no código (ou <strong>Shift+Enter</strong> para anterior).
+              </span>
+              <div className="church-custom-code-actions">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setIsCodeModalOpen(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn-save-code"
+                  onClick={handleSaveCodeModal}
+                >
+                  <Save size={15} />
+                  <span>Salvar Código</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

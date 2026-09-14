@@ -1032,255 +1032,220 @@ body {
 }
 
 /* ==========================================
-   GRAPESJS CODE VIEWER / EXPORT-TEMPLATE FULLSCREEN & SEARCH
+   CHURCH CODE EDITOR MODAL (NATIVE REACT FULLSCREEN MODAL)
    ========================================== */
 
-/* Container do modal de código ocupando todo o espaço abaixo do menu principal (68px) */
-.gjs-mdl-container.gjs-mdl-container-code-full {
-  position: fixed !important;
-  top: 68px !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: calc(100vh - 68px) !important;
-  max-width: 100vw !important;
-  max-height: calc(100vh - 68px) !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  z-index: 99 !important; /* Fica logo abaixo do .top-navbar (z-index: 100) */
-  display: block !important;
-  background-color: #0c0c12 !important;
-  overflow: hidden !important;
+/* Overlay cobrindo todo o espaço abaixo do menu superior (top-navbar = 68px) */
+.church-custom-code-modal-overlay {
+  position: fixed;
+  top: 68px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: calc(100vh - 68px);
+  max-width: 100vw;
+  max-height: calc(100vh - 68px);
+  background-color: #0c0c12;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease-out;
 }
 
-/* Diálogo do modal expandido em tela cheia sem cortes */
-.gjs-mdl-dialog.gjs-mdl-dialog-code-full {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  height: 100% !important;
-  max-height: 100% !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  border: none !important;
-  border-top: 1px solid #232332 !important;
-  background-color: #0c0c12 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  box-shadow: none !important;
-  overflow: hidden !important;
-  box-sizing: border-box !important;
+/* Estrutura principal do modal */
+.church-custom-code-modal {
+  width: 100%;
+  height: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  background-color: #0c0c12;
 }
 
-/* Cabeçalho superior mínimo: remove frase 'Editor de Código Livre' e mantém apenas o botão de fechar */
-.gjs-mdl-dialog.gjs-mdl-dialog-code-full .gjs-mdl-header {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-  padding: 0 16px !important;
-  background-color: #11111a !important;
-  border-bottom: 1px solid #1f1f2e !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-end !important;
-  flex-shrink: 0 !important;
-  box-sizing: border-box !important;
+/* Barra superior mínima com botão de fechar */
+.church-custom-code-header {
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 16px;
+  background-color: #11111a;
+  border-bottom: 1px solid #1f1f2e;
+  box-sizing: border-box;
 }
 
-.gjs-mdl-dialog.gjs-mdl-dialog-code-full .gjs-mdl-title {
-  display: none !important;
+.church-custom-code-close-btn {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.15s ease;
 }
 
-.gjs-mdl-dialog.gjs-mdl-dialog-code-full .gjs-mdl-btn-close {
-  color: #9ca3af !important;
-  font-size: 18px !important;
-  line-height: 1 !important;
-  cursor: pointer !important;
-  background: transparent !important;
-  border: none !important;
-  transition: color 0.15s ease !important;
+.church-custom-code-close-btn:hover {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.15);
 }
 
-.gjs-mdl-dialog.gjs-mdl-dialog-code-full .gjs-mdl-btn-close:hover {
-  color: #ef4444 !important;
-}
-
-/* Área de Conteúdo 100% contida sem estourar o rodapé */
-.gjs-mdl-dialog.gjs-mdl-dialog-code-full .gjs-mdl-content {
-  flex: 1 1 0% !important;
-  height: calc(100% - 32px) !important;
-  min-height: 0 !important;
-  padding: 6px 14px 8px 14px !important;
-  box-sizing: border-box !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  background-color: #0c0c12 !important;
-}
-
-/* Wrapper principal do código dentro do modal */
-.church-code-modal-wrapper {
-  width: 100% !important;
-  flex: 1 1 0% !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-}
-
-/* Linha com as duas colunas: HTML e CSS lado a lado */
-.church-code-editors-row {
-  flex: 1 1 0% !important;
-  height: calc(100% - 52px) !important;
-  min-height: 0 !important;
-  display: flex !important;
-  gap: 12px !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
+/* Área central contendo as duas colunas: HTML e CSS lado a lado */
+.church-custom-code-body {
+  flex: 1 1 0%;
+  height: calc(100% - 34px - 48px);
+  min-height: 0;
+  display: flex;
+  gap: 12px;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* Coluna individual (HTML ou CSS) */
 .church-code-col {
-  flex: 1 1 0% !important;
-  width: 50% !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  border: 1px solid #272738 !important;
-  border-radius: 8px !important;
-  overflow: hidden !important;
-  background-color: #0f0f16 !important;
-  box-sizing: border-box !important;
+  flex: 1 1 0%;
+  width: 50%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #272738;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #0f0f16;
+  box-sizing: border-box;
 }
 
 /* Barra Superior de cada Coluna: Tag Verde/Roxa e Campo de Busca Inline */
 .church-editor-top-bar {
-  height: 42px !important;
-  min-height: 42px !important;
-  max-height: 42px !important;
-  flex-shrink: 0 !important;
-  background-color: #161622 !important;
-  border-bottom: 1px solid #262638 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  padding: 0 12px !important;
-  box-sizing: border-box !important;
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  flex-shrink: 0;
+  background-color: #161622;
+  border-bottom: 1px solid #262638;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  box-sizing: border-box;
 }
 
 /* Tag Verde HTML do lado esquerdo acima da numeração */
 .church-code-tag {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-family: var(--font-display, inherit) !important;
-  font-weight: 700 !important;
-  font-size: 0.78rem !important;
-  letter-spacing: 0.05em !important;
-  text-transform: uppercase !important;
-  padding: 3px 12px !important;
-  border-radius: 6px !important;
-  color: #ffffff !important;
-  user-select: none !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display, inherit);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 12px;
+  border-radius: 6px;
+  color: #ffffff;
+  user-select: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 .church-code-tag.tag-html {
-  background: linear-gradient(135deg, #059669, #10b981) !important;
-  border: 1px solid #34d399 !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+  background: linear-gradient(135deg, #059669, #10b981);
+  border: 1px solid #34d399;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* Tag Roxa CSS do lado esquerdo acima da numeração */
 .church-code-tag.tag-css {
-  background: linear-gradient(135deg, #7c3aed, #8b5cf6) !important;
-  border: 1px solid #a78bfa !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+  border: 1px solid #a78bfa;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-/* Campo de busca integrado no cabeçalho de cada editor (sem botão, busca com Enter) */
+/* Campo de busca integrado no cabeçalho de cada editor */
 .church-editor-search-box {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  position: relative !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
 }
 
 .church-editor-search-icon {
-  position: absolute !important;
-  left: 8px !important;
-  color: #60a5fa !important;
-  pointer-events: none !important;
-  display: flex !important;
-  align-items: center !important;
+  position: absolute;
+  left: 8px;
+  color: #60a5fa;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
 }
 
 .church-code-inline-search {
-  width: 210px !important;
-  height: 28px !important;
-  background-color: #0b0b12 !important;
-  border: 1px solid #2d2d40 !important;
-  border-radius: 6px !important;
-  padding: 4px 8px 4px 26px !important;
-  color: #ffffff !important;
-  font-size: 0.78rem !important;
-  outline: none !important;
-  transition: all 0.2s ease !important;
-  box-sizing: border-box !important;
+  width: 210px;
+  height: 28px;
+  background-color: #0b0b12;
+  border: 1px solid #2d2d40;
+  border-radius: 6px;
+  padding: 4px 8px 4px 26px;
+  color: #ffffff;
+  font-size: 0.78rem;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .church-code-inline-search:focus {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
-  width: 250px !important;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  width: 250px;
 }
 
 .church-code-inline-search::placeholder {
-  color: #6b7280 !important;
-  font-size: 0.76rem !important;
+  color: #6b7280;
+  font-size: 0.76rem;
 }
 
 .church-search-match-count {
-  font-size: 0.72rem !important;
-  color: #38bdf8 !important;
-  background-color: #1e1e2d !important;
-  border: 1px solid #2f2f45 !important;
-  padding: 2px 6px !important;
-  border-radius: 4px !important;
-  font-weight: 600 !important;
-  white-space: nowrap !important;
+  font-size: 0.72rem;
+  color: #38bdf8;
+  background-color: #1e1e2d;
+  border: 1px solid #2f2f45;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .church-search-match-count.is-empty {
-  color: #f87171 !important;
-  background-color: rgba(239, 68, 68, 0.12) !important;
-  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #f87171;
+  background-color: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
-/* Área que envelopa o CodeMirror dentro da coluna */
-.church-editor-code-wrap {
-  flex: 1 1 0% !important;
-  height: calc(100% - 42px) !important;
-  min-height: 0 !important;
-  position: relative !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  box-sizing: border-box !important;
-  background-color: #0f0f16 !important;
+/* Wrapper que hospeda o CodeMirror dentro da coluna */
+.church-editor-code-wrapper {
+  flex: 1 1 0%;
+  height: calc(100% - 42px);
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  background-color: #0f0f16;
 }
 
-.church-editor-code-wrap > div {
+.church-editor-code-wrapper > div {
   flex: 1 1 0% !important;
   width: 100% !important;
   height: 100% !important;
@@ -1290,8 +1255,8 @@ body {
   overflow: hidden !important;
 }
 
-/* CodeMirror com rolagem vertical habilitada e folga perfeita */
-.church-editor-code-wrap .CodeMirror {
+/* CodeMirror com tema oficial Hopscotch, rolagem vertical e números visíveis */
+.church-editor-code-wrapper .CodeMirror {
   flex: 1 1 0% !important;
   width: 100% !important;
   height: 100% !important;
@@ -1303,41 +1268,40 @@ body {
   background-color: #0f0f16 !important;
 }
 
-.church-editor-code-wrap .CodeMirror-scroll {
+.church-editor-code-wrapper .CodeMirror-scroll {
   height: 100% !important;
   max-height: 100% !important;
-  overflow-y: scroll !important; /* Barra de rolagem vertical sempre ativa */
+  overflow-y: scroll !important;
   overflow-x: auto !important;
   box-sizing: border-box !important;
 }
 
-/* Estilização moderna e visível da barra de rolagem */
-.church-editor-code-wrap .CodeMirror-scroll::-webkit-scrollbar {
+.church-editor-code-wrapper .CodeMirror-scroll::-webkit-scrollbar {
   width: 10px !important;
   height: 10px !important;
 }
 
-.church-editor-code-wrap .CodeMirror-scroll::-webkit-scrollbar-track {
+.church-editor-code-wrapper .CodeMirror-scroll::-webkit-scrollbar-track {
   background: #11111a !important;
 }
 
-.church-editor-code-wrap .CodeMirror-scroll::-webkit-scrollbar-thumb {
+.church-editor-code-wrapper .CodeMirror-scroll::-webkit-scrollbar-thumb {
   background: #2a2a3d !important;
   border-radius: 5px !important;
   border: 2px solid #11111a !important;
 }
 
-.church-editor-code-wrap .CodeMirror-scroll::-webkit-scrollbar-thumb:hover {
+.church-editor-code-wrapper .CodeMirror-scroll::-webkit-scrollbar-thumb:hover {
   background: #3b82f6 !important;
 }
 
-.church-editor-code-wrap .CodeMirror-gutters {
+.church-editor-code-wrapper .CodeMirror-gutters {
   background-color: #14141f !important;
   border-right: 1px solid #222232 !important;
   min-height: 100% !important;
 }
 
-.church-editor-code-wrap .CodeMirror-linenumber {
+.church-editor-code-wrapper .CodeMirror-linenumber {
   color: #64748b !important;
   padding: 0 6px !important;
 }
@@ -1357,48 +1321,48 @@ body {
   border-radius: 3px;
 }
 
-/* Rodapé do Modal com aviso e botões - Sempre visível e nunca cortado */
-.church-code-modal-footer {
-  height: 44px !important;
-  min-height: 44px !important;
-  max-height: 44px !important;
-  flex-shrink: 0 !important;
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  padding: 0 4px !important;
-  border-top: 1px solid #232332 !important;
-  box-sizing: border-box !important;
-  background-color: #0c0c12 !important;
+/* Rodapé Fixo com aviso e botões - Sempre visível e nunca cortado */
+.church-custom-code-footer {
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  border-top: 1px solid #232332;
+  box-sizing: border-box;
+  background-color: #0c0c12;
 }
 
-.church-code-modal-hint {
-  font-size: 0.8rem !important;
-  color: #94a3b8 !important;
+.church-custom-code-hint {
+  font-size: 0.8rem;
+  color: #94a3b8;
 }
 
-.church-code-modal-actions {
-  display: flex !important;
-  gap: 10px !important;
-  align-items: center !important;
+.church-custom-code-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
-.church-code-modal-actions .btn-save-code {
-  background-color: #3b82f6 !important;
-  color: #ffffff !important;
-  padding: 7px 20px !important;
-  border-radius: 6px !important;
-  font-weight: 600 !important;
-  font-size: 0.85rem !important;
-  border: none !important;
-  cursor: pointer !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  transition: all 0.2s ease !important;
+.church-custom-code-actions .btn-save-code {
+  background-color: #3b82f6;
+  color: #ffffff;
+  padding: 7px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
 }
 
-.church-code-modal-actions .btn-save-code:hover {
-  background-color: #2563eb !important;
-  transform: translateY(-1px) !important;
+.church-custom-code-actions .btn-save-code:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
 }

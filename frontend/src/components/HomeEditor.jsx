@@ -835,8 +835,12 @@ export const HomeEditor = () => {
       }
     });
 
-    // Personaliza comando 'export-template' (Ver Código) com CodeMirror colorido, aninhado, editável e botão Salvar
+    // Personaliza comando 'export-template' (Ver Código) com tela cheia abaixo do menu, busca interativa e CodeMirror
     editor.Commands.add('export-template', {
+      currentMatches: [],
+      currentMatchIdx: -1,
+      activeMarker: null,
+
       run(ed) {
         const modal = ed.Modal;
         const pfx = ed.getConfig().stylePrefix || 'gjs-';
@@ -845,6 +849,97 @@ export const HomeEditor = () => {
           const container = document.createElement('div');
           container.className = 'church-code-modal-wrapper';
 
+          // 1. Barra de Busca Superior
+          const searchBar = document.createElement('div');
+          searchBar.className = 'church-code-search-bar';
+
+          const searchLeft = document.createElement('div');
+          searchLeft.className = 'church-code-search-left';
+
+          const searchInputBox = document.createElement('div');
+          searchInputBox.className = 'church-code-search-input-box';
+
+          const searchIcon = document.createElement('div');
+          searchIcon.className = 'church-code-search-icon';
+          searchIcon.innerHTML = `
+            <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          `;
+
+          const searchInput = document.createElement('input');
+          searchInput.type = 'text';
+          searchInput.className = 'church-code-search-input';
+          searchInput.placeholder = 'Buscar no código HTML e CSS (tag, classe, texto, cor)...';
+          searchInput.spellcheck = false;
+
+          const clearBtn = document.createElement('button');
+          clearBtn.type = 'button';
+          clearBtn.className = 'church-code-search-clear-btn';
+          clearBtn.title = 'Limpar busca';
+          clearBtn.innerHTML = `
+            <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          `;
+
+          searchInputBox.appendChild(searchIcon);
+          searchInputBox.appendChild(searchInput);
+          searchInputBox.appendChild(clearBtn);
+
+          const searchNav = document.createElement('div');
+          searchNav.className = 'church-code-search-nav';
+
+          const btnPrev = document.createElement('button');
+          btnPrev.type = 'button';
+          btnPrev.className = 'btn-search-nav prev-match';
+          btnPrev.title = 'Ocorrência anterior (Shift+Enter)';
+          btnPrev.disabled = true;
+          btnPrev.innerHTML = `
+            <svg style="width:13px;height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="18 15 12 9 6 15"/>
+            </svg>
+            <span>Anterior</span>
+          `;
+
+          const btnNext = document.createElement('button');
+          btnNext.type = 'button';
+          btnNext.className = 'btn-search-nav next-match';
+          btnNext.title = 'Próxima ocorrência (Enter)';
+          btnNext.disabled = true;
+          btnNext.innerHTML = `
+            <span>Próxima</span>
+            <svg style="width:13px;height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          `;
+
+          searchNav.appendChild(btnPrev);
+          searchNav.appendChild(btnNext);
+
+          const counterBadge = document.createElement('span');
+          counterBadge.className = 'church-code-search-counter';
+          counterBadge.innerText = 'Digite para pesquisar';
+
+          searchLeft.appendChild(searchInputBox);
+          searchLeft.appendChild(searchNav);
+          searchLeft.appendChild(counterBadge);
+
+          const searchRight = document.createElement('div');
+          searchRight.className = 'church-code-search-right';
+          searchRight.innerHTML = `
+            <span class="church-code-search-shortcut-hint">
+              <kbd>Enter</kbd> próxima · <kbd>Shift+Enter</kbd> anterior · <kbd>Ctrl+F</kbd> buscar
+            </span>
+          `;
+
+          searchBar.appendChild(searchLeft);
+          searchBar.appendChild(searchRight);
+          container.appendChild(searchBar);
+
+          // 2. Colunas de Editores CodeMirror (HTML e CSS)
           const editorsCont = document.createElement('div');
           editorsCont.className = `${pfx}export-dl`;
 
@@ -857,13 +952,13 @@ export const HomeEditor = () => {
           editorsCont.appendChild(oCssEd.el);
           container.appendChild(editorsCont);
 
-          // Rodapé do modal com aviso e botões Cancelar e Salvar Código
+          // 3. Rodapé do modal com aviso e botões Cancelar e Salvar Código
           const footer = document.createElement('div');
           footer.className = 'church-code-modal-footer';
 
           const hint = document.createElement('span');
           hint.className = 'church-code-modal-hint';
-          hint.innerHTML = '💡 Edite o HTML e CSS com realce de sintaxe. As alterações só serão aplicadas após clicar em <strong>Salvar Código</strong>.';
+          hint.innerHTML = '💡 Edite o HTML e CSS livremente com realce de sintaxe. As alterações só serão aplicadas após clicar em <strong>Salvar Código</strong>.';
 
           const btnContainer = document.createElement('div');
           btnContainer.className = 'church-code-modal-actions';
@@ -901,34 +996,264 @@ export const HomeEditor = () => {
           footer.appendChild(btnContainer);
           container.appendChild(footer);
 
+          // Funções da Busca Interativa
+          const clearAllMarks = () => {
+            const htmlCm = this.htmlEditor.getEditor && this.htmlEditor.getEditor();
+            const cssCm = this.cssEditor.getEditor && this.cssEditor.getEditor();
+            if (htmlCm && htmlCm.getAllMarks) htmlCm.getAllMarks().forEach(m => m.clear());
+            if (cssCm && cssCm.getAllMarks) cssCm.getAllMarks().forEach(m => m.clear());
+            this.currentMatches = [];
+            this.currentMatchIdx = -1;
+            this.activeMarker = null;
+          };
+
+          const jumpToMatch = (idx) => {
+            if (!this.currentMatches.length) return;
+            const total = this.currentMatches.length;
+            if (idx >= total) idx = 0;
+            if (idx < 0) idx = total - 1;
+            this.currentMatchIdx = idx;
+
+            const m = this.currentMatches[idx];
+
+            // Limpa o marcador ativo anterior
+            if (this.activeMarker) {
+              try { this.activeMarker.clear(); } catch (e) {}
+              this.activeMarker = null;
+            }
+
+            // Marca o atual como ativo
+            try {
+              if (m.marker) {
+                m.marker.clear();
+              }
+              m.marker = m.cm.markText(
+                { line: m.line, ch: m.startCh },
+                { line: m.line, ch: m.endCh },
+                { className: 'cm-search-highlight-active' }
+              );
+              this.activeMarker = m.marker;
+            } catch (e) {}
+
+            // Rola suavemente para a ocorrência e seleciona
+            try {
+              m.cm.scrollIntoView({ line: m.line, ch: m.startCh }, 150);
+              m.cm.setSelection({ line: m.line, ch: m.startCh }, { line: m.line, ch: m.endCh });
+            } catch (e) {}
+
+            // Atualiza o contador de resultados
+            counterBadge.className = 'church-code-search-counter';
+            counterBadge.innerHTML = `<strong>${idx + 1} de ${total}</strong> no <strong>${m.type}</strong> (linha ${m.line + 1})`;
+            btnPrev.disabled = false;
+            btnNext.disabled = false;
+          };
+
+          const executeSearch = (rawQuery) => {
+            clearAllMarks();
+            const query = (rawQuery || '').trim();
+            if (!query) {
+              clearBtn.style.display = 'none';
+              btnPrev.disabled = true;
+              btnNext.disabled = true;
+              counterBadge.className = 'church-code-search-counter';
+              counterBadge.innerText = 'Digite para pesquisar';
+              return;
+            }
+
+            clearBtn.style.display = 'flex';
+            const lowerQuery = query.toLowerCase();
+            const htmlCm = this.htmlEditor.getEditor && this.htmlEditor.getEditor();
+            const cssCm = this.cssEditor.getEditor && this.cssEditor.getEditor();
+
+            const matches = [];
+
+            // Pesquisa nas linhas do HTML
+            if (htmlCm) {
+              const count = htmlCm.lineCount();
+              for (let line = 0; line < count; line++) {
+                const text = htmlCm.getLine(line);
+                let pos = text.toLowerCase().indexOf(lowerQuery);
+                while (pos !== -1) {
+                  matches.push({
+                    type: 'HTML',
+                    cm: htmlCm,
+                    line,
+                    startCh: pos,
+                    endCh: pos + query.length
+                  });
+                  pos = text.toLowerCase().indexOf(lowerQuery, pos + 1);
+                }
+              }
+            }
+
+            // Pesquisa nas linhas do CSS
+            if (cssCm) {
+              const count = cssCm.lineCount();
+              for (let line = 0; line < count; line++) {
+                const text = cssCm.getLine(line);
+                let pos = text.toLowerCase().indexOf(lowerQuery);
+                while (pos !== -1) {
+                  matches.push({
+                    type: 'CSS',
+                    cm: cssCm,
+                    line,
+                    startCh: pos,
+                    endCh: pos + query.length
+                  });
+                  pos = text.toLowerCase().indexOf(lowerQuery, pos + 1);
+                }
+              }
+            }
+
+            this.currentMatches = matches;
+
+            if (matches.length === 0) {
+              btnPrev.disabled = true;
+              btnNext.disabled = true;
+              counterBadge.className = 'church-code-search-counter has-none';
+              counterBadge.innerText = 'Nenhuma ocorrência encontrada';
+              return;
+            }
+
+            // Aplica highlight em todas as correspondências
+            matches.forEach((m) => {
+              try {
+                m.marker = m.cm.markText(
+                  { line: m.line, ch: m.startCh },
+                  { line: m.line, ch: m.endCh },
+                  { className: 'cm-search-highlight-all' }
+                );
+              } catch (e) {}
+            });
+
+            // Pula para a primeira ocorrência
+            jumpToMatch(0);
+          };
+
+          let searchDebounceTimer = null;
+          searchInput.oninput = () => {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+              executeSearch(searchInput.value);
+            }, 120);
+          };
+
+          searchInput.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (e.shiftKey) {
+                if (this.currentMatches.length) jumpToMatch(this.currentMatchIdx - 1);
+              } else {
+                if (this.currentMatches.length) jumpToMatch(this.currentMatchIdx + 1);
+              }
+            } else if (e.key === 'Escape') {
+              searchInput.value = '';
+              executeSearch('');
+              searchInput.blur();
+            }
+          };
+
+          btnPrev.onclick = () => {
+            if (this.currentMatches.length) jumpToMatch(this.currentMatchIdx - 1);
+          };
+
+          btnNext.onclick = () => {
+            if (this.currentMatches.length) jumpToMatch(this.currentMatchIdx + 1);
+          };
+
+          clearBtn.onclick = () => {
+            searchInput.value = '';
+            executeSearch('');
+            searchInput.focus();
+          };
+
+          this.searchInput = searchInput;
+          this.executeSearch = executeSearch;
+          this.clearAllMarks = clearAllMarks;
           this.codeContainer = container;
         }
 
+        // Abre o modal GrapesJS
         modal.open({
           title: 'Editor de Código Livre (HTML & CSS)',
           content: this.codeContainer
         });
 
-        // Formata e carrega o código no CodeMirror com identação e cores
+        // Adiciona classe de tela cheia abaixo do menu principal (.top-navbar = 68px)
+        const modalContentEl = modal.getContentEl();
+        const dialogEl = modalContentEl?.closest('.gjs-mdl-dialog');
+        const containerEl = modalContentEl?.closest('.gjs-mdl-container');
+        if (dialogEl) dialogEl.classList.add('gjs-mdl-dialog-code-full');
+        if (containerEl) containerEl.classList.add('gjs-mdl-container-code-full');
+
+        // Garante a remoção das classes ao fechar o modal
+        const cleanupFullClasses = () => {
+          if (dialogEl) dialogEl.classList.remove('gjs-mdl-dialog-code-full');
+          if (containerEl) containerEl.classList.remove('gjs-mdl-container-code-full');
+          if (this.clearAllMarks) this.clearAllMarks();
+          if (this.searchInput) this.searchInput.value = '';
+        };
+
+        modal.getModel().once('change:open', (m) => {
+          if (!m.get('open')) cleanupFullClasses();
+        });
+
+        // Formata e carrega o código no CodeMirror com indentação e cores
         const rawHtml = ed.getHtml();
         const rawCss = ed.getCss();
         this.htmlEditor.setContent(formatHtml(rawHtml));
         this.cssEditor.setContent(formatCss(rawCss));
 
-        // Permite digitação livre nos editores CodeMirror
+        // Permite digitação livre nos editores CodeMirror e configura atalho Ctrl+F para buscar
         setTimeout(() => {
           const htmlCm = this.htmlEditor.getEditor && this.htmlEditor.getEditor();
           if (htmlCm) {
             htmlCm.setOption('readOnly', false);
+            htmlCm.setOption('extraKeys', {
+              'Ctrl-F': () => {
+                if (this.searchInput) {
+                  this.searchInput.focus();
+                  this.searchInput.select();
+                }
+              },
+              'Cmd-F': () => {
+                if (this.searchInput) {
+                  this.searchInput.focus();
+                  this.searchInput.select();
+                }
+              }
+            });
             htmlCm.refresh();
             htmlCm.focus();
           }
           const cssCm = this.cssEditor.getEditor && this.cssEditor.getEditor();
           if (cssCm) {
             cssCm.setOption('readOnly', false);
+            cssCm.setOption('extraKeys', {
+              'Ctrl-F': () => {
+                if (this.searchInput) {
+                  this.searchInput.focus();
+                  this.searchInput.select();
+                }
+              },
+              'Cmd-F': () => {
+                if (this.searchInput) {
+                  this.searchInput.focus();
+                  this.searchInput.select();
+                }
+              }
+            });
             cssCm.refresh();
           }
-        }, 100);
+        }, 80);
+
+        // Segundo refresh para garantir cálculo perfeito de dimensões após render do modal
+        setTimeout(() => {
+          const htmlCm = this.htmlEditor.getEditor && this.htmlEditor.getEditor();
+          const cssCm = this.cssEditor.getEditor && this.cssEditor.getEditor();
+          if (htmlCm) htmlCm.refresh();
+          if (cssCm) cssCm.refresh();
+        }, 220);
       },
 
       buildEditor(ed, codeName, theme, label) {
@@ -946,6 +1271,12 @@ export const HomeEditor = () => {
         }).render().el;
         return { model, el };
       }
+    });
+
+    // Garante remoção de classes ao fechar qualquer modal
+    editor.on('modal:close', () => {
+      document.querySelectorAll('.gjs-mdl-dialog-code-full').forEach(el => el.classList.remove('gjs-mdl-dialog-code-full'));
+      document.querySelectorAll('.gjs-mdl-container-code-full').forEach(el => el.classList.remove('gjs-mdl-container-code-full'));
     });
 
     // Escuta mudança de dispositivo no GrapesJS para sincronizar os botões da barra superior

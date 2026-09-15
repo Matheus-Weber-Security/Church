@@ -166,8 +166,8 @@ export const HomeEditor = () => {
   // Formata o código HTML com aninhamento e identação limpos preservando comentários intactos
   const formatHtml = (html) => {
     if (!html) return '';
-    // Se o HTML já estiver identado e com comentários, preserva formatação do usuário
-    if (html.includes('\n') && (html.includes('<!--') || html.includes('  <'))) {
+    // Se o HTML contiver comentários ou já estiver formatado com quebras de linha, preserva o texto original do usuário
+    if (html.includes('<!--') || (html.includes('\n') && html.includes('  <'))) {
       return html.trim();
     }
     const comments = [];
@@ -215,8 +215,8 @@ export const HomeEditor = () => {
   // Formata o código CSS com regras e propriedades identadas preservando comentários intactos
   const formatCss = (css) => {
     if (!css) return '';
-    // Se o CSS já tiver novas linhas e comentários, preserva o texto original do usuário
-    if (css.includes('\n') && (css.includes('/*') || css.includes('{\n'))) {
+    // Se o CSS contiver comentários ou já tiver novas linhas e regras, preserva o texto original do usuário intacto
+    if (css.includes('/*') || (css.includes('\n') && css.includes('{\n'))) {
       return css.trim();
     }
     const comments = [];
@@ -245,6 +245,7 @@ export const HomeEditor = () => {
   // MODAL NATIVO REACT DE EDIÇÃO DE CÓDIGO LIVRE (HTML & CSS)
   // ==========================================
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
+  const [isSavingCodeModal, setIsSavingCodeModal] = useState(false);
   const htmlHostRef = useRef(null);
   const cssHostRef = useRef(null);
   const htmlViewerRef = useRef(null);
@@ -434,14 +435,14 @@ export const HomeEditor = () => {
       codeName: 'htmlmixed',
       theme: 'hopscotch',
       readOnly: false,
-      autoFormat: true
+      autoFormat: false
     });
 
     const cssViewer = cm.createViewer({
       codeName: 'css',
       theme: 'hopscotch',
       readOnly: false,
-      autoFormat: true
+      autoFormat: false
     });
 
     htmlViewerRef.current = htmlViewer;
@@ -525,9 +526,10 @@ export const HomeEditor = () => {
     return () => window.removeEventListener('keydown', handleGlobalEsc);
   }, [isCodeModalOpen]);
 
-  // Aplica o código editado no editor GrapesJS e salva com preservação de comentários
-  const handleSaveCodeModal = () => {
+  // Aplica o código editado no editor GrapesJS e salva no banco de dados SQLite com preservação de comentários
+  const handleSaveCodeModal = async () => {
     if (!editorRef.current || !htmlViewerRef.current || !cssViewerRef.current) return;
+    setIsSavingCodeModal(true);
     try {
       const newHtml = htmlViewerRef.current.getContent();
       const newCss = cssViewerRef.current.getContent();
@@ -541,11 +543,24 @@ export const HomeEditor = () => {
       editorRef.current.setComponents(newHtml);
       editorRef.current.setStyle(newCss);
       setTimeout(() => injectCanvasStyles(editorRef.current), 150);
+
+      // Salva imediatamente no banco de dados SQLite para persistência definitiva
+      const pageInfo = pages.find((p) => p.slug === currentPage);
+      const projectData = editorRef.current.getProjectData();
+      await api.savePage(currentPage, {
+        title: pageInfo?.title || currentPage,
+        html: newHtml,
+        css: newCss,
+        project_data: JSON.stringify(projectData)
+      });
+
       setIsCodeModalOpen(false);
-      showToast('success', 'Código HTML e CSS atualizado no editor com sucesso! Comentários salvos e preservados.', 'Código Aplicado!');
+      showToast('success', 'Código HTML e CSS salvo e aplicado com sucesso! Comentários preservados.', 'Código Salvo!');
     } catch (err) {
       console.error('Erro ao salvar código no editor:', err);
-      showToast('error', `Falha ao aplicar alterações: ${err.message}`, 'Erro no Código');
+      showToast('error', `Falha ao salvar código: ${err.message}`, 'Erro no Código');
+    } finally {
+      setIsSavingCodeModal(false);
     }
   };
 
@@ -1489,7 +1504,9 @@ export const HomeEditor = () => {
         : gjsCss;
 
       const projectData = editorRef.current.getProjectData();
+      const pageInfo = pages.find((p) => p.slug === currentPage);
       await api.savePage(currentPage, {
+        title: pageInfo?.title || currentPage,
         html,
         css,
         project_data: JSON.stringify(projectData)
@@ -2283,9 +2300,10 @@ export const HomeEditor = () => {
                   type="button"
                   className="btn-save-code"
                   onClick={handleSaveCodeModal}
+                  disabled={isSavingCodeModal}
                 >
                   <Save size={15} />
-                  <span>Salvar Código</span>
+                  <span>{isSavingCodeModal ? 'Salvando...' : 'Salvar Código'}</span>
                 </button>
               </div>
             </div>

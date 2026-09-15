@@ -76,6 +76,14 @@ export const HomeEditor = () => {
   // Gerenciamento de Múltiplas Páginas
   const [pages, setPages] = useState([{ slug: 'home', title: 'Home' }]);
   const [currentPage, setCurrentPage] = useState('home');
+  const currentPageRef = useRef('home');
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
+
+  // Armazenamento em memória do código customizado (HTML e CSS) por página para preservação total de comentários
+  const customCodeByPageRef = useRef({});
+
   const [isNewPageModalOpen, setIsNewPageModalOpen] = useState(false);
   const [newPageData, setNewPageData] = useState({ title: '', slug: '' });
 
@@ -130,13 +138,24 @@ export const HomeEditor = () => {
     }
   };
 
-  // Formata o código HTML com aninhamento e identação limpos
+  // Formata o código HTML com aninhamento e identação limpos preservando comentários intactos
   const formatHtml = (html) => {
     if (!html) return '';
+    // Se o HTML já estiver identado e com comentários, preserva formatação do usuário
+    if (html.includes('\n') && (html.includes('<!--') || html.includes('  <'))) {
+      return html.trim();
+    }
+    const comments = [];
+    const protectedHtml = html.replace(/<!--[\s\S]*?-->/g, (match) => {
+      const id = `__HTML_COMMENT_${comments.length}__`;
+      comments.push(match);
+      return id;
+    });
+
     let formatted = '';
     let indent = 0;
     const tab = '  ';
-    const tokens = html.replace(/>\s*</g, '><').replace(/></g, '>\n<').split('\n');
+    const tokens = protectedHtml.replace(/>\s*</g, '><').replace(/></g, '>\n<').split('\n');
 
     tokens.forEach((token) => {
       token = token.trim();
@@ -161,19 +180,40 @@ export const HomeEditor = () => {
       }
     });
 
+    comments.forEach((comment, idx) => {
+      formatted = formatted.replace(`__HTML_COMMENT_${idx}__`, comment);
+    });
+
     return formatted.trim();
   };
 
-  // Formata o código CSS com regras e propriedades identadas
+  // Formata o código CSS com regras e propriedades identadas preservando comentários intactos
   const formatCss = (css) => {
     if (!css) return '';
-    return css
+    // Se o CSS já tiver novas linhas e comentários, preserva o texto original do usuário
+    if (css.includes('\n') && (css.includes('/*') || css.includes('{\n'))) {
+      return css.trim();
+    }
+    const comments = [];
+    const protectedCss = css.replace(/\/\*[\s\S]*?\*\//g, (match) => {
+      const id = `__CSS_COMMENT_${comments.length}__`;
+      comments.push(match);
+      return id;
+    });
+
+    let formatted = protectedCss
       .replace(/\s*\{\s*/g, ' {\n  ')
       .replace(/\s*;\s*/g, ';\n  ')
       .replace(/\s*\}\s*/g, '\n}\n\n')
       .replace(/  \n/g, '')
       .replace(/\n\s*\n\s*\n/g, '\n\n')
       .trim();
+
+    comments.forEach((comment, idx) => {
+      formatted = formatted.replace(`__CSS_COMMENT_${idx}__`, comment);
+    });
+
+    return formatted.trim();
   };
 
   // ==========================================
@@ -392,9 +432,15 @@ export const HomeEditor = () => {
       cssHostRef.current.appendChild(cssViewer.getElement());
     }
 
-    // Carrega o código atual da página formatado e aninhado
-    const rawHtml = ed.getHtml() || '';
-    const rawCss = ed.getCss() || '';
+    // Carrega o código atual da página preservando comentários em HTML e CSS
+    const savedCode = customCodeByPageRef.current[currentPage];
+    const rawHtml = (savedCode && savedCode.html !== undefined && savedCode.html !== null && savedCode.html !== '')
+      ? savedCode.html
+      : (ed.getHtml() || '');
+    const rawCss = (savedCode && savedCode.css !== undefined && savedCode.css !== null && savedCode.css !== '')
+      ? savedCode.css
+      : (ed.getCss() || '');
+
     htmlViewer.setContent(formatHtml(rawHtml));
     cssViewer.setContent(formatCss(rawCss));
 
@@ -454,17 +500,24 @@ export const HomeEditor = () => {
     return () => window.removeEventListener('keydown', handleGlobalEsc);
   }, [isCodeModalOpen]);
 
-  // Aplica o código editado no editor GrapesJS e salva
+  // Aplica o código editado no editor GrapesJS e salva com preservação de comentários
   const handleSaveCodeModal = () => {
     if (!editorRef.current || !htmlViewerRef.current || !cssViewerRef.current) return;
     try {
       const newHtml = htmlViewerRef.current.getContent();
       const newCss = cssViewerRef.current.getContent();
+
+      // Preserva o código exato digitado pelo usuário (com todos os comentários HTML e CSS intactos)
+      customCodeByPageRef.current[currentPage] = {
+        html: newHtml,
+        css: newCss
+      };
+
       editorRef.current.setComponents(newHtml);
       editorRef.current.setStyle(newCss);
       setTimeout(() => injectCanvasStyles(editorRef.current), 150);
       setIsCodeModalOpen(false);
-      showToast('success', 'Código HTML e CSS atualizado no editor com sucesso!', 'Código Aplicado!');
+      showToast('success', 'Código HTML e CSS atualizado no editor com sucesso! Comentários salvos e preservados.', 'Código Aplicado!');
     } catch (err) {
       console.error('Erro ao salvar código no editor:', err);
       showToast('error', `Falha ao aplicar alterações: ${err.message}`, 'Erro no Código');
@@ -531,15 +584,25 @@ export const HomeEditor = () => {
     }
   };
 
-  // Carrega conteúdo de uma página específica no editor
+  // Carrega conteúdo de uma página específica no editor preservando comentários
   const loadPageContent = async (editor, slug) => {
     if (!editor) return;
     try {
       const data = await api.getPage(slug);
+
+      // Armazena o código salvo no banco (com comentários em HTML e CSS intactos)
+      customCodeByPageRef.current[slug] = {
+        html: data?.html || '',
+        css: data?.css || ''
+      };
+
       if (data && data.project_data) {
         try {
           const projectData = JSON.parse(data.project_data);
           editor.loadProjectData(projectData);
+          if (data.css) {
+            editor.setStyle(data.css);
+          }
           setTimeout(() => injectCanvasStyles(editor), 150);
           return;
         } catch (e) {
@@ -557,6 +620,7 @@ export const HomeEditor = () => {
       setTimeout(() => injectCanvasStyles(editor), 150);
     } catch (err) {
       console.warn(`Página ${slug} sem conteúdo prévio:`, err.message);
+      customCodeByPageRef.current[slug] = { html: '', css: '' };
       editor.setComponents('');
       editor.setStyle('');
       setTimeout(() => injectCanvasStyles(editor), 150);
@@ -787,6 +851,49 @@ export const HomeEditor = () => {
         height: '100%',
         width: 'auto',
         storageManager: false,
+        parser: {
+          parserHtml: (str, config = {}) => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(str, 'text/html');
+            if (config.asDocument) return doc;
+            const body = doc.body;
+            const head = doc.head;
+
+            // Move scripts para o final do body
+            const scripts = head.querySelectorAll('script');
+            scripts.forEach((node) => body.appendChild(node));
+
+            const nodesToPrepend = [];
+            const nodesToAppend = [];
+            let passedHtml = false;
+
+            if (doc.childNodes) {
+              Array.from(doc.childNodes).forEach((node) => {
+                if (node === doc.documentElement) {
+                  passedHtml = true;
+                } else if (node.nodeType === 8) {
+                  if (!passedHtml) nodesToPrepend.push(node);
+                  else nodesToAppend.push(node);
+                }
+              });
+            }
+
+            if (head && head.childNodes) {
+              Array.from(head.childNodes).forEach((node) => {
+                if (node.nodeType === 8 || (node.nodeType === 1 && node.tagName !== 'TITLE' && node.tagName !== 'SCRIPT')) {
+                  nodesToPrepend.push(node);
+                }
+              });
+            }
+
+            for (let i = nodesToPrepend.length - 1; i >= 0; i--) {
+              body.insertBefore(nodesToPrepend[i], body.firstChild);
+            }
+            nodesToAppend.forEach((node) => body.appendChild(node));
+
+            return body;
+          }
+        },
         plugins: activePluginsList,
         pluginsOpts: {
           gjsPresetWebpage: {
@@ -1228,6 +1335,14 @@ export const HomeEditor = () => {
       document.querySelectorAll('.gjs-mdl-container-code-full').forEach(el => el.classList.remove('gjs-mdl-container-code-full'));
     });
 
+    // Sincroniza alterações no canvas com o cache de código da página preservando comentários
+    editor.on('component:update component:add component:remove', () => {
+      const page = currentPageRef.current;
+      if (customCodeByPageRef.current[page]) {
+        customCodeByPageRef.current[page].html = editor.getHtml();
+      }
+    });
+
     // Escuta mudança de dispositivo no GrapesJS para sincronizar os botões da barra superior
     editor.on('change:device', () => {
       const currentDevice = editor.getDevice();
@@ -1331,10 +1446,19 @@ export const HomeEditor = () => {
     if (newSlug === currentPage) return;
     if (!editorRef.current) return;
 
-    // Salva automaticamente a página atual antes de alternar
+    // Salva automaticamente a página atual antes de alternar preservando comentários
     try {
-      const html = editorRef.current.getHtml();
-      const css = editorRef.current.getCss();
+      const savedCode = customCodeByPageRef.current[currentPage];
+      const gjsHtml = editorRef.current.getHtml() || '';
+      const html = (savedCode && savedCode.html !== undefined && savedCode.html !== '')
+        ? savedCode.html
+        : gjsHtml;
+
+      const gjsCss = editorRef.current.getCss() || '';
+      const css = (savedCode && savedCode.css !== undefined && savedCode.css !== '')
+        ? savedCode.css
+        : gjsCss;
+
       const projectData = editorRef.current.getProjectData();
       await api.savePage(currentPage, {
         html,
@@ -1388,15 +1512,24 @@ export const HomeEditor = () => {
     }
   };
 
-  // Salvar a página ativa no SQLite
+  // Salvar a página ativa no SQLite com comentários em HTML e CSS preservados
   const handleSave = async () => {
     if (!editorRef.current) return;
     setSaving(true);
     setSaveStatus(null);
 
     try {
-      const html = editorRef.current.getHtml();
-      const css = editorRef.current.getCss();
+      const savedCode = customCodeByPageRef.current[currentPage];
+      const gjsHtml = editorRef.current.getHtml() || '';
+      const html = (savedCode && savedCode.html !== undefined && savedCode.html !== '')
+        ? savedCode.html
+        : gjsHtml;
+
+      const gjsCss = editorRef.current.getCss() || '';
+      const css = (savedCode && savedCode.css !== undefined && savedCode.css !== '')
+        ? savedCode.css
+        : gjsCss;
+
       const projectData = editorRef.current.getProjectData();
       const pageInfo = pages.find((p) => p.slug === currentPage);
 

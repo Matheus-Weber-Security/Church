@@ -1546,25 +1546,21 @@ export const HomeEditor = () => {
     if (newSlug === currentPage) return;
     if (!editorRef.current) return;
 
-    // Salva automaticamente a página atual antes de alternar preservando comentários
+    // Salva automaticamente a página atual antes de alternar sincronizando canvas e estilos
     try {
-      const savedCode = customCodeByPageRef.current[currentPage];
       const gjsHtml = editorRef.current.getHtml() || '';
-      const html = (savedCode && savedCode.html !== undefined && savedCode.html !== '')
-        ? savedCode.html
-        : gjsHtml;
-
       const gjsCss = editorRef.current.getCss() || '';
-      const css = (savedCode && savedCode.css !== undefined && savedCode.css !== '')
-        ? savedCode.css
-        : gjsCss;
+      customCodeByPageRef.current[currentPage] = {
+        html: gjsHtml,
+        css: gjsCss
+      };
 
       const projectData = editorRef.current.getProjectData();
       const pageInfo = pages.find((p) => p.slug === currentPage);
       await api.savePage(currentPage, {
         title: pageInfo?.title || currentPage,
-        html,
-        css,
+        html: gjsHtml,
+        css: gjsCss,
         project_data: JSON.stringify(projectData)
       });
     } catch (e) {
@@ -1614,31 +1610,29 @@ export const HomeEditor = () => {
     }
   };
 
-  // Salvar a página ativa no SQLite com comentários em HTML e CSS preservados
+  // Salvar a página ativa no SQLite sincronizando 100% os estilos do canvas e elementos
   const handleSave = async () => {
     if (!editorRef.current) return;
     setSaving(true);
     setSaveStatus(null);
 
     try {
-      const savedCode = customCodeByPageRef.current[currentPage];
       const gjsHtml = editorRef.current.getHtml() || '';
-      const html = (savedCode && savedCode.html !== undefined && savedCode.html !== '')
-        ? savedCode.html
-        : gjsHtml;
-
       const gjsCss = editorRef.current.getCss() || '';
-      const css = (savedCode && savedCode.css !== undefined && savedCode.css !== '')
-        ? savedCode.css
-        : gjsCss;
+
+      // Sincroniza a memória local com as alterações visuais e estilos mais recentes do canvas
+      customCodeByPageRef.current[currentPage] = {
+        html: gjsHtml,
+        css: gjsCss
+      };
 
       const projectData = editorRef.current.getProjectData();
       const pageInfo = pages.find((p) => p.slug === currentPage);
 
       await api.savePage(currentPage, {
         title: pageInfo?.title || currentPage,
-        html,
-        css,
+        html: gjsHtml,
+        css: gjsCss,
         project_data: JSON.stringify(projectData)
       });
 

@@ -103,12 +103,11 @@ export const HomeEditor = () => {
 
   const handleConfirmDelete = async () => {
     const filename = deleteConfirmModal.filename;
-    if (!filename) return;
+    const assetEl = deleteConfirmModal.assetEl;
+    const assetSrc = deleteConfirmModal.src;
 
-    setIsDeletingAsset(true);
-    try {
-      await api.deleteAsset(filename);
-
+    // Função auxiliar para remover o asset da galeria e do AssetManager do GrapesJS
+    const purgeAssetFromUI = () => {
       // 1. Remove o asset do AssetManager em memória do GrapesJS
       if (editorRef.current && editorRef.current.AssetManager) {
         const am = editorRef.current.AssetManager;
@@ -116,7 +115,11 @@ export const HomeEditor = () => {
         const targetModel = allAssets.find((a) => {
           const aSrc = a.get ? (a.get('src') || '') : (a.src || '');
           const aName = a.get ? (a.get('name') || '') : (a.name || '');
-          return aSrc.includes(filename) || aName === filename;
+          const aFilename = a.get ? (a.get('filename') || '') : (a.filename || '');
+          return (
+            (filename && (aSrc.includes(filename) || aName === filename || aFilename === filename)) ||
+            (assetSrc && aSrc === assetSrc)
+          );
         });
         if (targetModel) {
           am.remove(targetModel);
@@ -124,15 +127,37 @@ export const HomeEditor = () => {
       }
 
       // 2. Remove o card DOM da galeria
-      if (deleteConfirmModal.assetEl && deleteConfirmModal.assetEl.parentNode) {
-        deleteConfirmModal.assetEl.remove();
+      if (assetEl && assetEl.parentNode) {
+        assetEl.remove();
       }
 
-      showToast('success', `A imagem "${filename}" foi excluída com sucesso da pasta de uploads.`, 'Imagem Excluída!');
+      // 3. Fecha o modal de confirmação
       setDeleteConfirmModal({ isOpen: false, filename: '', src: '', assetEl: null });
+    };
+
+    if (!filename) {
+      purgeAssetFromUI();
+      return;
+    }
+
+    setIsDeletingAsset(true);
+    try {
+      const res = await api.deleteAsset(filename);
+      purgeAssetFromUI();
+      if (res && res.deleted === false) {
+        showToast('warning', `A imagem "${filename}" não existia mais no servidor e foi removida da galeria.`, 'Galeria Atualizada');
+      } else {
+        showToast('success', `A imagem "${filename}" foi excluída com sucesso da pasta de uploads.`, 'Imagem Excluída!');
+      }
     } catch (err) {
-      console.error('Erro ao excluir imagem:', err);
-      showToast('error', `Falha ao excluir imagem do servidor: ${err.message}`, 'Erro na Exclusão');
+      console.warn('Aviso ao excluir imagem do servidor:', err);
+      // Se não encontrada (404) ou erro de remoção, remove da interface mesmo assim para não travar o card
+      if (err.message && (err.message.includes('não encontrada') || err.message.includes('404'))) {
+        purgeAssetFromUI();
+        showToast('warning', `A imagem "${filename}" não estava mais no servidor e foi removida da galeria.`, 'Card Removido');
+      } else {
+        showToast('error', `Falha ao excluir imagem do servidor: ${err.message}`, 'Erro na Exclusão');
+      }
     } finally {
       setIsDeletingAsset(false);
     }
@@ -676,28 +701,33 @@ export const HomeEditor = () => {
     assetElements.forEach((el) => {
       // 1. Tenta extrair a URL da imagem da prévia
       let url = '';
-      const preview = el.querySelector('.gjs-am-asset__preview, [class*="preview"], img');
+      const preview = el.querySelector('.gjs-am-preview, .gjs-am-asset__preview, [class*="preview"], img');
       if (preview) {
         if (preview.tagName === 'IMG' && preview.src) {
           url = preview.src;
-        } else if (preview.style.backgroundImage) {
+        } else if (preview.style && preview.style.backgroundImage) {
           url = preview.style.backgroundImage.replace(/^url\(["']?/, '').replace(/["']?\)$/, '');
         }
       }
 
-      // 2. Fallback: Localiza pelo nome do arquivo no AssetManager
-      if (!url) {
-        const meta = el.querySelector('.gjs-am-asset__meta, .gjs-am-meta, .gjs-am-name');
-        const name = meta ? meta.textContent.trim() : '';
-        const allAssets = editor.AssetManager.getAll();
-        const found = allAssets.find((a) => {
-          const aSrc = a.get ? (a.get('src') || '') : (a.src || '');
-          const aName = a.get ? (a.get('name') || '') : (a.name || '');
-          return (name && aName === name) || (name && aSrc.includes(name));
-        });
-        if (found) {
-          url = found.get ? found.get('src') : found.src;
-        }
+      const meta = el.querySelector('.gjs-am-asset__meta, .gjs-am-meta, .gjs-am-name');
+      const metaName = meta ? meta.textContent.trim() : '';
+
+      // 2. Localiza o modelo no AssetManager para obter a URL e filename canônicos do servidor
+      const allAssets = editor.AssetManager.getAll();
+      const foundAsset = allAssets.find((a) => {
+        const aSrc = a.get ? (a.get('src') || '') : (a.src || '');
+        const aName = a.get ? (a.get('name') || '') : (a.name || '');
+        const aFilename = a.get ? (a.get('filename') || '') : (a.filename || '');
+        return (
+          (url && aSrc === url) ||
+          (metaName && (aName === metaName || aFilename === metaName || aSrc.endsWith('/' + metaName)))
+        );
+      });
+
+      if (foundAsset) {
+        const canonSrc = foundAsset.get ? foundAsset.get('src') : foundAsset.src;
+        if (canonSrc) url = canonSrc;
       }
 
       // 3. Intercepta o botão "X" (.gjs-am-close) para confirmar antes de excluir do servidor
@@ -718,14 +748,13 @@ export const HomeEditor = () => {
               const cleanUrl = url.split('?')[0];
               filename = decodeURIComponent(cleanUrl.split('/').pop() || '');
             }
-            if (!filename) {
-              const meta = el.querySelector('.gjs-am-asset__meta, .gjs-am-meta, .gjs-am-name');
-              filename = meta ? meta.textContent.trim() : '';
+            if (!filename && metaName) {
+              filename = metaName;
             }
 
             setDeleteConfirmModal({
               isOpen: true,
-              filename,
+              filename: filename || metaName || 'imagem',
               src: url,
               assetEl: el
             });

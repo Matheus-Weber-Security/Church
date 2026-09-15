@@ -69,6 +69,7 @@ router.get('/', (req, res) => {
         return {
           src: url,
           name: file,
+          filename: file,
           type: 'image'
         };
       });
@@ -118,6 +119,7 @@ router.post(
         return {
           src: url,
           name: file.originalname || file.filename,
+          filename: file.filename,
           type: 'image'
         };
       });
@@ -136,20 +138,46 @@ router.post(
 
 /**
  * DELETE /api/uploads/:filename
- * Remove uma imagem do servidor
+ * Remove uma imagem do servidor com busca flexível e idempotente
  */
 router.delete('/:filename', authMiddleware, roleMiddleware(['admin', 'editor']), (req, res) => {
   const { filename } = req.params;
-  const filePath = path.join(uploadDir, path.basename(filename));
+  const rawBase = path.basename(filename);
+  const filePath = path.join(uploadDir, rawBase);
 
   try {
+    // 1. Checagem direta pelo nome exato informado
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
-      return res.json({ message: 'Imagem excluída com sucesso.' });
+      return res.json({ message: 'Imagem excluída com sucesso.', deleted: true });
     }
-    return res.status(404).json({ error: 'Imagem não encontrada.' });
+
+    // 2. Busca flexível caso o nome recebido seja o nome original (ex: 'flor.jpg' vs 'flor-172635...jpg')
+    const ext = path.extname(rawBase).toLowerCase();
+    const cleanBaseName = path.basename(rawBase, ext).replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+
+    if (fs.existsSync(uploadDir)) {
+      const files = fs.readdirSync(uploadDir);
+      const matched = files.find((f) => {
+        const fExt = path.extname(f).toLowerCase();
+        const fBase = path.basename(f, fExt).toLowerCase();
+        return fExt === ext && (fBase === cleanBaseName || fBase.startsWith(`${cleanBaseName}-`));
+      });
+
+      if (matched) {
+        const matchedPath = path.join(uploadDir, matched);
+        if (fs.existsSync(matchedPath)) {
+          fs.unlinkSync(matchedPath);
+          return res.json({ message: 'Imagem excluída com sucesso.', deleted: true, file: matched });
+        }
+      }
+    }
+
+    // 3. Se não encontrar o arquivo no disco, responde informando que já foi removido (idempotência)
+    return res.json({ message: 'Imagem não encontrada no servidor (já havia sido removida).', deleted: false });
   } catch (error) {
-    return res.status(500).json({ error: 'Erro ao remover imagem.' });
+    console.error('Erro ao remover imagem:', error);
+    return res.status(500).json({ error: 'Erro ao remover imagem do servidor.' });
   }
 });
 

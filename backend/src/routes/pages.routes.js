@@ -15,8 +15,137 @@ router.get('/', async (req, res) => {
     );
 
     // Garante que a página 'home' sempre exista na listagem com layout recuperado
-    const defaultHomeHtml = `<body id="i75f"><header id="i68r"><div id="iem1"><a href="/" id="ig7i"><span id="ii8i"></span>Imec<br/></a><nav id="it8k"><a href="/" id="iig2">Home</a><a href="#sobre" id="izh5r">Sobre Nós</a><a href="#cultos" id="i8g4v">Cultos &amp; Horários</a><a href="#ministerios" id="is5mn">Ministérios</a><a href="#contato" id="i9off">Contato</a></nav><a href="#aovivo" id="ibomk">\n              Assista Ao Vivo\n            </a></div></header></body>`;
-    const defaultHomeCss = `* { box-sizing: border-box; } body {margin: 0;}#ii8i{background:#3b82f6;width:10px;height:10px;border-radius:50%;display:inline-block;}#ig7i{color:#ffffff;text-decoration:none;font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;display:flex;align-items:center;gap:0.5rem;}#iig2{color:#ffffff;text-decoration:none;font-size:0.95rem;font-weight:500;transition:color 0.2s;}#izh5r{color:#a1a1aa;text-decoration:none;font-size:0.95rem;font-weight:500;transition:color 0.2s;}#i8g4v{color:#a1a1aa;text-decoration:none;font-size:0.95rem;font-weight:500;transition:color 0.2s;}#is5mn{color:#a1a1aa;text-decoration:none;font-size:0.95rem;font-weight:500;transition:color 0.2s;}#i9off{color:#a1a1aa;text-decoration:none;font-size:0.95rem;font-weight:500;transition:color 0.2s;}#it8k{display:flex;align-items:center;gap:1.75rem;flex-wrap:wrap;}#ibomk{background-color:#ffffff;color:#09090b;padding:0.55rem 1.25rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:0.9rem;transition:background-color 0.2s;}#iem1{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;}#i68r{background-color:#09090b;border-bottom:1px solid #27272a;padding:1.2rem 2rem;font-family:'Inter', sans-serif;}`;
+    const defaultHomeHtml = `<header id="i68r">
+  <div id="iem1">
+    <a href="/" id="ig7i">
+      <span id="ii8i"></span>
+      Imec
+      <br/>
+    </a>
+    <nav id="it8k">
+      <a href="/" id="iig2">
+        Home
+      </a>
+      <a href="#sobre" id="izh5r">
+        Sobre Nós
+      </a>
+      <a href="#cultos" id="i8g4v">
+        Cultos &amp; Horários
+      </a>
+      <a href="#ministerios" id="is5mn">
+        Ministérios
+      </a>
+      <a href="#contato" id="i9off">
+        Contato
+      </a>
+    </nav>
+    <a href="#aovivo" id="ibomk">
+      Assista Ao Vivo
+    </a>
+  </div>
+</header>`;
+
+    const defaultHomeCss = `* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#ii8i {
+  background: #3b82f6;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+#ig7i {
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#iig2 {
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+#izh5r {
+  color: #a1a1aa;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+#i8g4v {
+  color: #a1a1aa;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+#is5mn {
+  color: #a1a1aa;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+#i9off {
+  color: #a1a1aa;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+#it8k {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  flex-wrap: wrap;
+}
+
+#ibomk {
+  background-color: #ffffff;
+  color: #09090b;
+  padding: 0.55rem 1.25rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+#iem1 {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+#i68r {
+  background-color: #09090b;
+  border-bottom: 1px solid #27272a;
+  padding: 1.2rem 2rem;
+  font-family: 'Inter', sans-serif;
+}`;
 
     const hasHome = pages.some((p) => p.slug === 'home');
     if (!hasHome) {

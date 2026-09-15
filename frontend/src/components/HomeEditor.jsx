@@ -163,88 +163,101 @@ export const HomeEditor = () => {
     }
   };
 
-  // Formata o código HTML preservando rigorosamente o texto e aninhamento do usuário se já estiver em linhas separadas
+  // Formata o código HTML com aninhamento hierárquico profissional e preservação total de comentários
   const formatHtml = (html) => {
     if (!html) return '';
     const trimmed = html.trim();
-    // Se o HTML contiver quebras de linha ou comentários, preserva 100% como o usuário digitou
-    if (trimmed.includes('\n') || trimmed.includes('<!--')) {
-      return trimmed;
-    }
 
-    // Apenas se for uma string minificada/unificada em linha única (ex: gerada inicialmente pelo GrapesJS):
+    // Protege comentários HTML
     const comments = [];
     const protectedHtml = trimmed.replace(/<!--[\s\S]*?-->/g, (match) => {
-      const id = `__HTML_COMMENT_${comments.length}__`;
+      const id = `___HTML_COMMENT_${comments.length}___`;
       comments.push(match);
       return id;
     });
 
-    let formatted = '';
-    let indent = 0;
     const tab = '  ';
-    const tokens = protectedHtml.replace(/>\s*</g, '><').replace(/></g, '>\n<').split('\n');
+    let result = '';
+    let indent = 0;
+
+    const clean = protectedHtml.replace(/>\s*</g, '><').trim();
+    const tokens = clean.split(/(<\/?[^>]+>)/g).filter(Boolean);
+
+    const voidTags = ['img', 'br', 'hr', 'input', 'link', 'meta', 'source', 'area', 'col', 'embed', 'param', 'track', 'wbr'];
 
     tokens.forEach((token) => {
       token = token.trim();
       if (!token) return;
 
       if (token.startsWith('</')) {
-        if (indent > 0) indent--;
-      }
+        indent = Math.max(0, indent - 1);
+        result += tab.repeat(indent) + token + '\n';
+      } else if (token.startsWith('<') && !token.startsWith('<!')) {
+        const tagNameMatch = token.match(/<([a-zA-Z0-9-]+)/);
+        const tagName = tagNameMatch ? tagNameMatch[1].toLowerCase() : '';
+        const isVoid = voidTags.includes(tagName) || token.endsWith('/>');
 
-      formatted += tab.repeat(indent) + token + '\n';
-
-      if (
-        token.startsWith('<') &&
-        !token.startsWith('</') &&
-        !token.startsWith('<!') &&
-        !token.endsWith('/>') &&
-        !/^(<area|<base|<br|<col|<embed|<hr|<img|<input|<link|<meta|<param|<source|<track|<wbr)/i.test(token)
-      ) {
-        if (!token.includes('</')) {
+        result += tab.repeat(indent) + token + '\n';
+        if (!isVoid) {
           indent++;
         }
+      } else {
+        result += tab.repeat(indent) + token + '\n';
       }
     });
 
+    let finalHtml = result.trim();
     comments.forEach((comment, idx) => {
-      formatted = formatted.replace(`__HTML_COMMENT_${idx}__`, comment);
+      finalHtml = finalHtml.replace(`___HTML_COMMENT_${idx}___`, comment);
     });
 
-    return formatted.trim();
+    return finalHtml;
   };
 
-  // Formata o código CSS preservando rigorosamente o texto e aninhamento do usuário se já estiver em linhas separadas
+  // Formata o código CSS com regras e blocos aninhados profissionalmente e preservação total de comentários
   const formatCss = (css) => {
     if (!css) return '';
     const trimmed = css.trim();
-    // Se o CSS contiver quebras de linha ou comentários, preserva 100% como o usuário digitou
-    if (trimmed.includes('\n') || trimmed.includes('/*')) {
-      return trimmed;
-    }
 
-    // Apenas se for CSS minificado em linha única:
+    // Protege comentários CSS
     const comments = [];
     const protectedCss = trimmed.replace(/\/\*[\s\S]*?\*\//g, (match) => {
-      const id = `__CSS_COMMENT_${comments.length}__`;
+      const id = `___CSS_COMMENT_${comments.length}___`;
       comments.push(match);
       return id;
     });
 
-    let formatted = protectedCss
-      .replace(/\s*\{\s*/g, ' {\n  ')
-      .replace(/\s*;\s*/g, ';\n  ')
-      .replace(/\s*\}\s*/g, '\n}\n\n')
-      .replace(/  \n/g, '')
-      .replace(/\n\s*\n\s*\n/g, '\n\n')
-      .trim();
+    let clean = protectedCss.replace(/\r\n/g, '\n').trim();
+    clean = clean.replace(/\s*\{\s*/g, ' {\n');
+    clean = clean.replace(/\s*;\s*/g, ';\n');
+    clean = clean.replace(/\s*\}\s*/g, '\n}\n\n');
 
+    const lines = clean.split('\n');
+    let indent = 0;
+    const tab = '  ';
+    let formatted = '';
+
+    for (let line of lines) {
+      line = line.trim();
+      if (!line) continue;
+
+      if (line === '}') {
+        indent = Math.max(0, indent - 1);
+        formatted += tab.repeat(indent) + line + '\n\n';
+      } else if (line.endsWith('{')) {
+        formatted += tab.repeat(indent) + line + '\n';
+        indent++;
+      } else {
+        formatted += tab.repeat(indent) + line + '\n';
+      }
+    }
+
+    let finalCss = formatted.trim();
     comments.forEach((comment, idx) => {
-      formatted = formatted.replace(`__CSS_COMMENT_${idx}__`, comment);
+      finalCss = finalCss.replace(`___CSS_COMMENT_${idx}___`, comment);
     });
 
-    return formatted.trim();
+    return finalCss;
   };
 
   // ==========================================

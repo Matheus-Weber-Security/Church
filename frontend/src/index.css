@@ -792,16 +792,26 @@ body {
   box-sizing: border-box !important;
 }
 
+/* Container do Asset Manager com layout flex moderno */
+.gjs-asset-manager {
+  display: flex !important;
+  gap: 16px !important;
+  width: 100% !important;
+  height: 460px !important;
+  box-sizing: border-box !important;
+}
+
 /* File Uploader (Dropzone) à esquerda */
 .gjs-am-file-uploader {
-  width: 42% !important;
-  float: left !important;
+  flex: 0 0 40% !important;
+  width: 40% !important;
+  float: none !important;
   background-color: #111116 !important;
   border: 2px dashed #38384a !important;
   border-radius: 10px !important;
   transition: all 0.25s ease !important;
   margin-bottom: 0 !important;
-  height: 460px !important;
+  height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
@@ -827,9 +837,11 @@ body {
 
 /* Container de Fotos à direita */
 .gjs-am-assets-cont {
-  width: 55% !important;
-  float: right !important;
-  height: 460px !important;
+  flex: 1 1 0% !important;
+  width: auto !important;
+  float: none !important;
+  min-width: 0 !important;
+  height: 100% !important;
   background-color: #14141b !important;
   border: 1px solid #252533 !important;
   border-radius: 10px !important;
@@ -885,18 +897,37 @@ body {
   background-color: #2563eb !important;
 }
 
-/* Grid de fotos com scroll suave e respiro de 50px no rodapé */
+/* Grid de fotos com scroll suave, linhas com altura própria e sem sobreposição de cards */
 .gjs-am-assets {
-  flex: 1 !important;
-  height: auto !important;
-  max-height: 395px !important;
+  flex: 1 1 0% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)) !important;
+  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)) !important;
+  grid-auto-rows: max-content !important;
   gap: 14px !important;
-  padding: 4px 4px 55px 4px !important;
+  padding: 4px 6px 20px 4px !important;
   align-content: flex-start !important;
+  align-items: start !important;
+}
+
+/* Scrollbar estilizada e elegante para a galeria */
+.gjs-am-assets::-webkit-scrollbar {
+  width: 6px;
+}
+.gjs-am-assets::-webkit-scrollbar-track {
+  background: #14141b;
+  border-radius: 4px;
+}
+.gjs-am-assets::-webkit-scrollbar-thumb {
+  background: #2d2d3e;
+  border-radius: 4px;
+}
+.gjs-am-assets::-webkit-scrollbar-thumb:hover {
+  background: #3b82f6;
 }
 
 /* Card Individual da Foto */
@@ -914,6 +945,7 @@ body {
   padding: 0 !important;
   border-bottom: none !important;
   position: relative !important;
+  flex-shrink: 0 !important;
 }
 
 .gjs-am-asset:hover {
@@ -931,6 +963,7 @@ body {
   border-radius: 7px 7px 0 0 !important;
   position: relative !important;
   overflow: hidden !important;
+  flex-shrink: 0 !important;
 }
 
 .gjs-am-preview {
@@ -951,6 +984,7 @@ body {
   padding: 8px 8px 2px 8px !important;
   box-sizing: border-box !important;
   text-align: center !important;
+  flex-shrink: 0 !important;
 }
 
 .gjs-am-meta > div,
@@ -1017,6 +1051,7 @@ body {
   cursor: pointer !important;
   transition: all 0.2s ease !important;
   z-index: 10 !important;
+  flex-shrink: 0 !important;
 }
 
 .btn-copy-asset-url:hover {

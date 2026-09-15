@@ -163,15 +163,18 @@ export const HomeEditor = () => {
     }
   };
 
-  // Formata o código HTML com aninhamento e identação limpos preservando comentários intactos
+  // Formata o código HTML preservando rigorosamente o texto e aninhamento do usuário se já estiver em linhas separadas
   const formatHtml = (html) => {
     if (!html) return '';
-    // Se o HTML contiver comentários ou já estiver formatado com quebras de linha, preserva o texto original do usuário
-    if (html.includes('<!--') || (html.includes('\n') && html.includes('  <'))) {
-      return html.trim();
+    const trimmed = html.trim();
+    // Se o HTML contiver quebras de linha ou comentários, preserva 100% como o usuário digitou
+    if (trimmed.includes('\n') || trimmed.includes('<!--')) {
+      return trimmed;
     }
+
+    // Apenas se for uma string minificada/unificada em linha única (ex: gerada inicialmente pelo GrapesJS):
     const comments = [];
-    const protectedHtml = html.replace(/<!--[\s\S]*?-->/g, (match) => {
+    const protectedHtml = trimmed.replace(/<!--[\s\S]*?-->/g, (match) => {
       const id = `__HTML_COMMENT_${comments.length}__`;
       comments.push(match);
       return id;
@@ -212,15 +215,18 @@ export const HomeEditor = () => {
     return formatted.trim();
   };
 
-  // Formata o código CSS com regras e propriedades identadas preservando comentários intactos
+  // Formata o código CSS preservando rigorosamente o texto e aninhamento do usuário se já estiver em linhas separadas
   const formatCss = (css) => {
     if (!css) return '';
-    // Se o CSS contiver comentários ou já tiver novas linhas e regras, preserva o texto original do usuário intacto
-    if (css.includes('/*') || (css.includes('\n') && css.includes('{\n'))) {
-      return css.trim();
+    const trimmed = css.trim();
+    // Se o CSS contiver quebras de linha ou comentários, preserva 100% como o usuário digitou
+    if (trimmed.includes('\n') || trimmed.includes('/*')) {
+      return trimmed;
     }
+
+    // Apenas se for CSS minificado em linha única:
     const comments = [];
-    const protectedCss = css.replace(/\/\*[\s\S]*?\*\//g, (match) => {
+    const protectedCss = trimmed.replace(/\/\*[\s\S]*?\*\//g, (match) => {
       const id = `__CSS_COMMENT_${comments.length}__`;
       comments.push(match);
       return id;
@@ -458,7 +464,7 @@ export const HomeEditor = () => {
       cssHostRef.current.appendChild(cssViewer.getElement());
     }
 
-    // Carrega o código atual da página preservando comentários em HTML e CSS
+    // Carrega o código atual da página preservando comentários e identação manual intactos
     const savedCode = customCodeByPageRef.current[currentPage];
     const rawHtml = (savedCode && savedCode.html !== undefined && savedCode.html !== null && savedCode.html !== '')
       ? savedCode.html
@@ -467,15 +473,38 @@ export const HomeEditor = () => {
       ? savedCode.css
       : (ed.getCss() || '');
 
-    htmlViewer.setContent(formatHtml(rawHtml));
-    cssViewer.setContent(formatCss(rawCss));
+    // Se já foi digitado/salvo pelo usuário, carrega diretamente o texto exato sem reformatar!
+    // Se for do canvas do GrapesJS sem quebras de linha, passa por formatHtml/formatCss
+    const initialHtml = (savedCode && typeof savedCode.html === 'string' && savedCode.html.trim())
+      ? savedCode.html
+      : formatHtml(rawHtml);
+    const initialCss = (savedCode && typeof savedCode.css === 'string' && savedCode.css.trim())
+      ? savedCode.css
+      : formatCss(rawCss);
+
+    htmlViewer.setContent(initialHtml);
+    cssViewer.setContent(initialCss);
 
     const t1 = setTimeout(() => {
       const htmlCm = htmlViewer.getEditor && htmlViewer.getEditor();
       if (htmlCm) {
         htmlCm.setOption('readOnly', false);
         htmlCm.setOption('lineWrapping', true);
+        htmlCm.setOption('tabSize', 2);
+        htmlCm.setOption('indentUnit', 2);
+        htmlCm.setOption('indentWithTabs', false);
+        htmlCm.setOption('smartIndent', true);
         htmlCm.setOption('extraKeys', {
+          'Tab': (cm) => {
+            if (cm.somethingSelected()) {
+              cm.indentSelection('add');
+            } else {
+              cm.replaceSelection('  ', 'end');
+            }
+          },
+          'Shift-Tab': (cm) => {
+            cm.indentSelection('subtract');
+          },
           'Ctrl-F': () => htmlSearchInputRef.current?.focus(),
           'Cmd-F': () => htmlSearchInputRef.current?.focus()
         });
@@ -486,7 +515,21 @@ export const HomeEditor = () => {
       if (cssCm) {
         cssCm.setOption('readOnly', false);
         cssCm.setOption('lineWrapping', true);
+        cssCm.setOption('tabSize', 2);
+        cssCm.setOption('indentUnit', 2);
+        cssCm.setOption('indentWithTabs', false);
+        cssCm.setOption('smartIndent', true);
         cssCm.setOption('extraKeys', {
+          'Tab': (cm) => {
+            if (cm.somethingSelected()) {
+              cm.indentSelection('add');
+            } else {
+              cm.replaceSelection('  ', 'end');
+            }
+          },
+          'Shift-Tab': (cm) => {
+            cm.indentSelection('subtract');
+          },
           'Ctrl-F': () => cssSearchInputRef.current?.focus(),
           'Cmd-F': () => cssSearchInputRef.current?.focus()
         });

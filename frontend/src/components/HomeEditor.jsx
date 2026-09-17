@@ -1111,6 +1111,50 @@ export const HomeEditor = () => {
       }
     });
 
+    // Adiciona trait de URL/Link direto da imagem no painel de propriedades (Engrenagem)
+    editor.DomComponents.addType('image', {
+      extend: 'image',
+      model: {
+        defaults: {
+          traits: [
+            {
+              type: 'text',
+              name: 'src',
+              label: 'Endereço da Foto (URL / Link)',
+              placeholder: 'Cole a URL: https://... ou /uploads/...',
+              changeProp: 1
+            },
+            {
+              type: 'text',
+              name: 'alt',
+              label: 'Texto Alternativo (Alt)',
+              placeholder: 'Descrição da foto para acessibilidade'
+            },
+            {
+              type: 'text',
+              name: 'title',
+              label: 'Título (Tooltip)',
+              placeholder: 'Texto exibido ao passar o mouse'
+            }
+          ]
+        },
+        init() {
+          this.listenTo(this, 'change:src', () => {
+            const src = this.get('src');
+            if (src && this.getAttributes().src !== src) {
+              this.addAttributes({ src });
+            }
+          });
+          this.listenTo(this, 'change:attributes:src', () => {
+            const src = this.getAttributes().src;
+            if (src && this.get('src') !== src) {
+              this.set('src', src);
+            }
+          });
+        }
+      }
+    });
+
     // Registra blocos customizados
     const blockManager = editor.BlockManager;
 

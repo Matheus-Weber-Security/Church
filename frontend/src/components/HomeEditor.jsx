@@ -219,7 +219,7 @@ export const HomeEditor = () => {
     if (!css) return '';
     const trimmed = css.trim();
 
-    // Protege comentários CSS
+    // 1. Protege comentários CSS
     const comments = [];
     const protectedCss = trimmed.replace(/\/\*[\s\S]*?\*\//g, (match) => {
       const id = `___CSS_COMMENT_${comments.length}___`;
@@ -227,7 +227,16 @@ export const HomeEditor = () => {
       return id;
     });
 
-    let clean = protectedCss.replace(/\r\n/g, '\n').trim();
+    // 2. Protege URLs e dados base64 (evita quebrar ponto-e-vírgula dentro de url(...))
+    const urls = [];
+    const protectedUrls = protectedCss.replace(/url\([^)]+\)/gi, (match) => {
+      const id = `___CSS_URL_${urls.length}___`;
+      urls.push(match);
+      return id;
+    });
+
+    // 3. Normaliza quebras de linha e estrutura chaves e ponto-e-vírgula
+    let clean = protectedUrls.replace(/\r\n/g, '\n').trim();
     clean = clean.replace(/\s*\{\s*/g, ' {\n');
     clean = clean.replace(/\s*;\s*/g, ';\n');
     clean = clean.replace(/\s*\}\s*/g, '\n}\n\n');
@@ -237,8 +246,8 @@ export const HomeEditor = () => {
     const tab = '  ';
     let formatted = '';
 
-    for (let line of lines) {
-      line = line.trim();
+    for (let rawLine of lines) {
+      const line = rawLine.trim();
       if (!line) continue;
 
       if (line === '}') {
@@ -248,11 +257,25 @@ export const HomeEditor = () => {
         formatted += tab.repeat(indent) + line + '\n';
         indent++;
       } else {
-        formatted += tab.repeat(indent) + line + '\n';
+        const colonIdx = line.indexOf(':');
+        let formattedLine = line;
+        if (colonIdx > 0 && !line.startsWith('@') && !line.includes('{')) {
+          const prop = line.slice(0, colonIdx).trim();
+          const val = line.slice(colonIdx + 1).trim();
+          formattedLine = `${prop}: ${val}`;
+        }
+        formatted += tab.repeat(indent) + formattedLine + '\n';
       }
     }
 
     let finalCss = formatted.trim();
+
+    // Restaura URLs
+    urls.forEach((url, idx) => {
+      finalCss = finalCss.replace(`___CSS_URL_${idx}___`, url);
+    });
+
+    // Restaura Comentários
     comments.forEach((comment, idx) => {
       finalCss = finalCss.replace(`___CSS_COMMENT_${idx}___`, comment);
     });
@@ -477,7 +500,7 @@ export const HomeEditor = () => {
       cssHostRef.current.appendChild(cssViewer.getElement());
     }
 
-    // Carrega o código atual da página preservando comentários e identação manual intactos
+    // Carrega o código atual da página garantindo SEMPRE auto-formatação e aninhamento
     const savedCode = customCodeByPageRef.current[currentPage];
     const rawHtml = (savedCode && savedCode.html !== undefined && savedCode.html !== null && savedCode.html !== '')
       ? savedCode.html
@@ -486,14 +509,8 @@ export const HomeEditor = () => {
       ? savedCode.css
       : (ed.getCss() || '');
 
-    // Se já foi digitado/salvo pelo usuário, carrega diretamente o texto exato sem reformatar!
-    // Se for do canvas do GrapesJS sem quebras de linha, passa por formatHtml/formatCss
-    const initialHtml = (savedCode && typeof savedCode.html === 'string' && savedCode.html.trim())
-      ? savedCode.html
-      : formatHtml(rawHtml);
-    const initialCss = (savedCode && typeof savedCode.css === 'string' && savedCode.css.trim())
-      ? savedCode.css
-      : formatCss(rawCss);
+    const initialHtml = formatHtml(rawHtml);
+    const initialCss = formatCss(rawCss);
 
     htmlViewer.setContent(initialHtml);
     cssViewer.setContent(initialCss);
@@ -686,10 +703,13 @@ export const HomeEditor = () => {
     try {
       const data = await api.getPage(slug);
 
-      // Armazena o código salvo no banco (com comentários em HTML e CSS intactos)
+      const formattedHtml = formatHtml(data?.html || '');
+      const formattedCss = formatCss(data?.css || '');
+
+      // Armazena o código salvo no banco (com formatação e aninhamento garantidos)
       customCodeByPageRef.current[slug] = {
-        html: data?.html || '',
-        css: data?.css || ''
+        html: formattedHtml,
+        css: formattedCss
       };
 
       if (data && data.project_data) {
@@ -1479,11 +1499,18 @@ export const HomeEditor = () => {
       document.querySelectorAll('.gjs-mdl-container-code-full').forEach(el => el.classList.remove('gjs-mdl-container-code-full'));
     });
 
-    // Sincroniza alterações no canvas com o cache de código da página preservando comentários
+    // Sincroniza alterações no canvas com o cache de código da página preservando aninhamento e comentários
     editor.on('component:update component:add component:remove', () => {
       const page = currentPageRef.current;
       if (customCodeByPageRef.current[page]) {
-        customCodeByPageRef.current[page].html = editor.getHtml();
+        customCodeByPageRef.current[page].html = formatHtml(editor.getHtml() || '');
+      }
+    });
+
+    editor.on('style:update style:custom', () => {
+      const page = currentPageRef.current;
+      if (customCodeByPageRef.current[page]) {
+        customCodeByPageRef.current[page].css = formatCss(editor.getCss() || '');
       }
     });
 
@@ -1590,21 +1617,24 @@ export const HomeEditor = () => {
     if (newSlug === currentPage) return;
     if (!editorRef.current) return;
 
-    // Salva automaticamente a página atual antes de alternar sincronizando canvas e estilos
+    // Salva automaticamente a página atual antes de alternar sincronizando canvas e estilos formatados
     try {
       const gjsHtml = editorRef.current.getHtml() || '';
       const gjsCss = editorRef.current.getCss() || '';
+      const formattedHtml = formatHtml(gjsHtml);
+      const formattedCss = formatCss(gjsCss);
+
       customCodeByPageRef.current[currentPage] = {
-        html: gjsHtml,
-        css: gjsCss
+        html: formattedHtml,
+        css: formattedCss
       };
 
       const projectData = editorRef.current.getProjectData();
       const pageInfo = pages.find((p) => p.slug === currentPage);
       await api.savePage(currentPage, {
         title: pageInfo?.title || currentPage,
-        html: gjsHtml,
-        css: gjsCss,
+        html: formattedHtml,
+        css: formattedCss,
         project_data: JSON.stringify(projectData)
       });
     } catch (e) {
@@ -1654,7 +1684,7 @@ export const HomeEditor = () => {
     }
   };
 
-  // Salvar a página ativa no SQLite sincronizando 100% os estilos do canvas e elementos
+  // Salvar a página ativa no SQLite sincronizando 100% os estilos do canvas e elementos formatados
   const handleSave = async () => {
     if (!editorRef.current) return;
     setSaving(true);
@@ -1664,10 +1694,13 @@ export const HomeEditor = () => {
       const gjsHtml = editorRef.current.getHtml() || '';
       const gjsCss = editorRef.current.getCss() || '';
 
-      // Sincroniza a memória local com as alterações visuais e estilos mais recentes do canvas
+      const formattedHtml = formatHtml(gjsHtml);
+      const formattedCss = formatCss(gjsCss);
+
+      // Sincroniza a memória local com as alterações visuais e estilos formatados e aninhados
       customCodeByPageRef.current[currentPage] = {
-        html: gjsHtml,
-        css: gjsCss
+        html: formattedHtml,
+        css: formattedCss
       };
 
       const projectData = editorRef.current.getProjectData();
@@ -1675,8 +1708,8 @@ export const HomeEditor = () => {
 
       await api.savePage(currentPage, {
         title: pageInfo?.title || currentPage,
-        html: gjsHtml,
-        css: gjsCss,
+        html: formattedHtml,
+        css: formattedCss,
         project_data: JSON.stringify(projectData)
       });
 

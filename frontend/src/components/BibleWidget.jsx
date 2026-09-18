@@ -137,15 +137,12 @@ export const BibleWidget = ({ initialVersion = 'nvi', onNavigateHome }) => {
   return (
     <div className="church-bible-card" style={{
       width: '100%',
-      maxWidth: '680px',
-      margin: '0 auto',
+      minHeight: '100%',
       backgroundColor: '#ffffff',
       color: '#18181b',
-      borderRadius: '12px',
-      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.15)',
       overflow: 'hidden',
-      border: '1px solid #e4e4e7',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      boxSizing: 'border-box'
     }}>
       {/* HEADER PRINCIPAL COM NAVEGAÇÃO E SELETOR DE VERSÃO */}
       <div style={{
@@ -387,18 +384,21 @@ export const BibleWidget = ({ initialVersion = 'nvi', onNavigateHome }) => {
             </button>
           </div>
 
-          {/* Lista de Livros com scroll */}
+          {/* Lista de Livros (Grid Responsivo que preenche 100% da largura) */}
           <div style={{
-            maxHeight: '420px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gap: '8px',
+            maxHeight: '540px',
             overflowY: 'auto',
-            paddingRight: '4px'
+            padding: '4px 4px 4px 0'
           }}>
             {loadingBooks ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
                 Carregando livros da Bíblia...
               </div>
             ) : displayedBooks.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
                 Nenhum livro encontrado para "{searchQuery}".
               </div>
             ) : (
@@ -410,17 +410,24 @@ export const BibleWidget = ({ initialVersion = 'nvi', onNavigateHome }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '14px 12px',
-                    borderBottom: '1px solid #f1f5f9',
+                    padding: '12px 14px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
                     cursor: 'pointer',
-                    transition: 'background-color 0.15s',
-                    borderRadius: '6px'
+                    transition: 'all 0.15s'
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f1f5f9';
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                  }}
                 >
                   <span style={{
-                    fontSize: '1.02rem',
+                    fontSize: '0.98rem',
                     fontWeight: 600,
                     color: '#0f172a'
                   }}>
@@ -430,13 +437,13 @@ export const BibleWidget = ({ initialVersion = 'nvi', onNavigateHome }) => {
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '6px',
                     color: '#94a3b8',
-                    fontSize: '0.92rem',
+                    fontSize: '0.88rem',
                     fontWeight: 500
                   }}>
                     <span>{book.chaptersCount}</span>
-                    <ChevronRight size={18} color="#cbd5e1" />
+                    <ChevronRight size={16} color="#cbd5e1" />
                   </div>
                 </div>
               ))

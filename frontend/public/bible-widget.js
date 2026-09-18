@@ -1,6 +1,6 @@
 /**
  * Church Bible Widget - Script Universal da Bíblia Sagrada (NVI, ACF, AA)
- * Renderiza a interface da Bíblia em qualquer elemento com id="church-bible-app" ou classe .church-bible-widget
+ * Renderiza a interface da Bíblia preenchendo 100% do container pai em qualquer elemento com id="church-bible-app" ou classe .church-bible-widget
  */
 (function () {
   const getApiUrl = () => {
@@ -93,7 +93,7 @@
       const filteredBooks = getFilteredBooks();
 
       container.innerHTML = `
-        <div class="church-bible-root" style="width:100%;max-width:680px;margin:0 auto;background:#ffffff;color:#18181b;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,0.08);overflow:hidden;border:1px solid #e4e4e7;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;text-align:left;">
+        <div class="church-bible-root" style="width:100%;min-height:100%;background:#ffffff;color:#18181b;overflow:hidden;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;text-align:left;box-sizing:border-box;">
           
           <!-- HEADER PRINCIPAL COM NAVEGAÇÃO E SELETOR DE VERSÃO -->
           <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f1f5f9;background:#ffffff;position:relative;">
@@ -166,16 +166,16 @@
                 </button>
               </div>
 
-              <!-- Lista de Livros -->
-              <div style="max-height:420px;overflow-y:auto;padding-right:4px;">
-                ${state.loadingBooks ? '<div style="text-align:center;padding:40px 20px;color:#64748b;">Carregando livros da Bíblia...</div>' : ''}
-                ${!state.loadingBooks && filteredBooks.length === 0 ? `<div style="text-align:center;padding:40px 20px;color:#64748b;">Nenhum livro encontrado para "${state.searchQuery}".</div>` : ''}
+              <!-- Lista de Livros (Grid Responsivo que preenche 100% da largura) -->
+              <div class="bible-books-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;max-height:540px;overflow-y:auto;padding:4px 4px 4px 0;">
+                ${state.loadingBooks ? '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#64748b;">Carregando livros da Bíblia...</div>' : ''}
+                ${!state.loadingBooks && filteredBooks.length === 0 ? `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#64748b;">Nenhum livro encontrado para "${state.searchQuery}".</div>` : ''}
                 ${filteredBooks.map(b => `
-                  <div class="bible-book-item" data-book-id="${b.id}" style="display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;border-radius:6px;transition:background-color 0.15s;">
-                    <span style="font-size:1.02rem;font-weight:600;color:#0f172a;">${b.name}</span>
-                    <div style="display:flex;align-items:center;gap:8px;color:#94a3b8;font-size:0.92rem;font-weight:500;">
+                  <div class="bible-book-item" data-book-id="${b.id}" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:all 0.15s;">
+                    <span style="font-size:0.98rem;font-weight:600;color:#0f172a;">${b.name}</span>
+                    <div style="display:flex;align-items:center;gap:6px;color:#94a3b8;font-size:0.88rem;font-weight:500;">
                       <span>${b.chaptersCount}</span>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
                     </div>
                   </div>
                 `).join('')}
@@ -190,7 +190,7 @@
                 Selecione o capítulo de <strong>${state.selectedBook.name}</strong> (${state.selectedBook.testamentName || ''}):
               </div>
 
-              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:10px;max-height:420px;overflow-y:auto;padding-right:4px;">
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:10px;max-height:540px;overflow-y:auto;padding-right:4px;">
                 ${Array.from({ length: state.selectedBook.chaptersCount }, (_, i) => i + 1).map(chapNum => `
                   <button class="bible-chapter-btn" data-chapter="${chapNum}" style="height:52px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;color:#0f172a;font-size:1.05rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;">
                     ${chapNum}
@@ -222,10 +222,10 @@
               </div>
 
               <!-- Lista de Versículos -->
-              <div style="max-height:440px;overflow-y:auto;padding-right:8px;line-height:1.75;">
+              <div style="max-height:560px;overflow-y:auto;padding-right:8px;line-height:1.8;">
                 ${state.loadingChapter ? '<div style="text-align:center;padding:50px 20px;color:#64748b;">Carregando versículos...</div>' : ''}
                 ${!state.loadingChapter && state.chapterData?.verses?.length ? state.chapterData.verses.map(v => `
-                  <div class="bible-verse-item" data-verse-num="${v.number}" data-verse-text="${encodeURIComponent(v.text)}" style="margin-bottom:12px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:${state.fontSize}px;color:#1e293b;position:relative;" title="Clique para copiar este versículo">
+                  <div class="bible-verse-item" data-verse-num="${v.number}" data-verse-text="${encodeURIComponent(v.text)}" style="margin-bottom:12px;padding:10px 12px;border-radius:8px;cursor:pointer;font-size:${state.fontSize}px;color:#1e293b;position:relative;transition:background-color 0.15s;" title="Clique para copiar este versículo">
                     <sup style="font-weight:800;color:#3b82f6;margin-right:6px;font-size:${Math.max(11, state.fontSize - 5)}px;">${v.number}</sup>
                     <span>${v.text}</span>
                     ${state.copiedVerse === v.number ? '<span style="position:absolute;right:12px;top:8px;background:#10b981;color:#ffffff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;">✔ Copiado!</span>' : ''}
@@ -291,18 +291,18 @@
       if (searchInput) {
         searchInput.oninput = (e) => {
           state.searchQuery = e.target.value;
-          const booksContainer = container.querySelector('.bible-book-item')?.parentElement;
+          const booksContainer = container.querySelector('.bible-books-grid');
           if (booksContainer) {
             const filtered = getFilteredBooks();
             if (filtered.length === 0) {
-              booksContainer.innerHTML = `<div style="text-align:center;padding:40px 20px;color:#64748b;">Nenhum livro encontrado para "${state.searchQuery}".</div>`;
+              booksContainer.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#64748b;">Nenhum livro encontrado para "${state.searchQuery}".</div>`;
             } else {
               booksContainer.innerHTML = filtered.map(b => `
-                <div class="bible-book-item" data-book-id="${b.id}" style="display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;border-radius:6px;transition:background-color 0.15s;">
-                  <span style="font-size:1.02rem;font-weight:600;color:#0f172a;">${b.name}</span>
-                  <div style="display:flex;align-items:center;gap:8px;color:#94a3b8;font-size:0.92rem;font-weight:500;">
+                <div class="bible-book-item" data-book-id="${b.id}" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:all 0.15s;">
+                  <span style="font-size:0.98rem;font-weight:600;color:#0f172a;">${b.name}</span>
+                  <div style="display:flex;align-items:center;gap:6px;color:#94a3b8;font-size:0.88rem;font-weight:500;">
                     <span>${b.chaptersCount}</span>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
                   </div>
                 </div>
               `).join('');
@@ -411,10 +411,12 @@
     const attachBookClicks = () => {
       container.querySelectorAll('.bible-book-item').forEach(el => {
         el.onmouseenter = () => {
-          el.style.backgroundColor = '#f8fafc';
+          el.style.backgroundColor = '#f1f5f9';
+          el.style.borderColor = '#cbd5e1';
         };
         el.onmouseleave = () => {
-          el.style.backgroundColor = 'transparent';
+          el.style.backgroundColor = '#f8fafc';
+          el.style.borderColor = '#e2e8f0';
         };
         el.onclick = () => {
           const bookId = parseInt(el.dataset.bookId, 10);

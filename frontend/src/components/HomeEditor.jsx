@@ -1414,8 +1414,8 @@ export const HomeEditor = () => {
       `,
       category: 'Mídia & Dinâmico',
       content: `
-        <div class="church-bible-container" style="padding: 24px 12px; width: 100%; display: flex; justify-content: center; background-color: #f8fafc; border-radius: 12px; margin: 16px 0;">
-          <div id="church-bible-app" class="church-bible-widget" style="width: 100%; max-width: 680px; min-height: 480px; margin: 0 auto;"></div>
+        <div class="church-bible-container" style="width: 100%; min-height: 520px; display: block; background-color: transparent; margin: 0; padding: 0;">
+          <div id="church-bible-app" class="church-bible-widget" style="width: 100%; min-height: 520px; margin: 0;"></div>
         </div>
       `
     });

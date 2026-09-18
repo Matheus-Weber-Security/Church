@@ -4,12 +4,16 @@
  */
 (function () {
   const getApiUrl = () => {
-    // Detecta URL da API configurada ou usa fallback relativo /api
-    if (window.__CHURCH_API_URL__) return window.__CHURCH_API_URL__;
+    if (typeof window !== 'undefined') {
+      if (window.__CHURCH_API_URL__ && window.__CHURCH_API_URL__ !== '/api') {
+        return window.__CHURCH_API_URL__;
+      }
+      if (window.location && window.location.hostname && window.location.hostname.includes('igrejaelcana.com.br')) {
+        return 'https://api.igrejaelcana.com.br/api';
+      }
+    }
     return '/api';
   };
-
-  const API_BASE = getApiUrl();
 
   const createBibleWidget = (container) => {
     if (!container || container.dataset.bibleInitialized) return;
@@ -40,7 +44,8 @@
       try {
         state.loadingBooks = true;
         render();
-        const res = await fetch(`${API_BASE}/bible/books`).then(r => r.json());
+        const apiBase = getApiUrl();
+        const res = await fetch(`${apiBase}/bible/books`).then(r => r.json());
         if (res && res.books) {
           state.books = res.books;
         }
@@ -57,7 +62,8 @@
       try {
         state.loadingChapter = true;
         render();
-        const res = await fetch(`${API_BASE}/bible/${state.version}/${state.selectedBook.abbrev}/${state.selectedChapter}`).then(r => r.json());
+        const apiBase = getApiUrl();
+        const res = await fetch(`${apiBase}/bible/${state.version}/${state.selectedBook.abbrev}/${state.selectedChapter}`).then(r => r.json());
         if (res) {
           state.chapterData = res;
         }
@@ -87,55 +93,59 @@
       const filteredBooks = getFilteredBooks();
 
       container.innerHTML = `
-        <div class="church-bible-root" style="width:100%;max-width:680px;margin:0 auto;background:#ffffff;color:#18181b;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.15);overflow:hidden;border:1px solid #e4e4e7;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;text-align:left;">
+        <div class="church-bible-root" style="width:100%;max-width:680px;margin:0 auto;background:#ffffff;color:#18181b;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,0.08);overflow:hidden;border:1px solid #e4e4e7;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;text-align:left;">
           
-          <!-- 1. HEADER PRETO -->
-          <div style="background-color:#000000;color:#ffffff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;user-select:none;">
-            ${state.currentView !== 'books' ? `
-              <button id="bible-btn-back" style="background:transparent;border:none;color:#ffffff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:6px;border-radius:6px;" title="Voltar">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
-              </button>
-            ` : `<div style="width:34px;"></div>`}
-
-            <h2 style="font-size:1.25rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;margin:0;color:#ffffff;text-align:center;">
-              BÍBLIA
-            </h2>
-
-            <button id="bible-btn-home" style="background:transparent;border:none;color:#ffffff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:6px;border-radius:6px;" title="Início">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            </button>
-          </div>
-
-          <!-- 2. SUBHEADER & SELETOR DE VERSÃO -->
-          <div style="padding:16px 20px 10px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f4f4f5;position:relative;">
-            <h3 style="font-size:1.35rem;font-weight:700;color:#18181b;margin:0;">
-              ${state.currentView === 'books' ? 'Livros' : ''}
-              ${state.currentView === 'chapters' ? state.selectedBook?.name : ''}
-              ${state.currentView === 'verses' ? `${state.selectedBook?.name} ${state.selectedChapter}` : ''}
-            </h3>
-
-            <div style="position:relative;">
-              <button id="bible-btn-version" style="background:#ffffff;border:1.5px solid #27272a;border-radius:6px;padding:5px 12px;font-size:0.8rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#18181b;cursor:pointer;display:flex;align-items:center;gap:4px;">
-                VERSÃO ${state.version.toUpperCase()}
-              </button>
-
-              ${state.showDropdown ? `
-                <div id="bible-dropdown-menu" style="position:absolute;top:110%;right:0;background:#ffffff;border:1px solid #e4e4e7;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.15);z-index:50;min-width:220px;overflow:hidden;padding:4px;">
-                  ${state.versionsList.map(v => `
-                    <button class="bible-version-option" data-version="${v.id}" style="width:100%;text-align:left;padding:10px 14px;border:none;background:${state.version === v.id ? '#f4f4f5' : 'transparent'};color:${state.version === v.id ? '#000000' : '#52525b'};font-weight:${state.version === v.id ? '700' : '500'};font-size:0.88rem;cursor:pointer;border-radius:6px;display:flex;flex-direction:column;gap:2px;">
-                      <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-weight:700;">${v.name}</span>
-                        ${state.version === v.id ? '<span style="color:#3b82f6;font-size:11px;font-weight:700;">ATIVO</span>' : ''}
-                      </div>
-                      <span style="font-size:0.75rem;color:#71717a;">${v.fullName}</span>
-                    </button>
-                  `).join('')}
-                </div>
+          <!-- HEADER PRINCIPAL COM NAVEGAÇÃO E SELETOR DE VERSÃO -->
+          <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f1f5f9;background:#ffffff;position:relative;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              ${state.currentView !== 'books' ? `
+                <button id="bible-btn-back" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#0f172a;cursor:pointer;display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;transition:all 0.2s;" title="Voltar">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
               ` : ''}
+              <div>
+                <h3 style="font-size:1.3rem;font-weight:700;color:#0f172a;margin:0;line-height:1.2;">
+                  ${state.currentView === 'books' ? 'Livros' : ''}
+                  ${state.currentView === 'chapters' ? (state.selectedBook?.name || '') : ''}
+                  ${state.currentView === 'verses' ? `${state.selectedBook?.name || ''} ${state.selectedChapter}` : ''}
+                </h3>
+                ${state.currentView === 'chapters' && state.selectedBook?.testamentName ? `
+                  <div style="font-size:0.75rem;color:#64748b;font-weight:500;">${state.selectedBook.testamentName}</div>
+                ` : ''}
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;position:relative;">
+              ${state.currentView !== 'books' ? `
+                <button id="bible-btn-home" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#0f172a;cursor:pointer;display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;transition:all 0.2s;" title="Início dos Livros">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </button>
+              ` : ''}
+
+              <div style="position:relative;">
+                <button id="bible-btn-version" style="background:#ffffff;border:1.5px solid #27272a;border-radius:6px;padding:6px 12px;font-size:0.8rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#18181b;cursor:pointer;display:flex;align-items:center;gap:4px;">
+                  <span>VERSÃO ${state.version.toUpperCase()}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+
+                ${state.showDropdown ? `
+                  <div id="bible-dropdown-menu" style="position:absolute;top:115%;right:0;background:#ffffff;border:1px solid #e4e4e7;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.15);z-index:50;min-width:220px;overflow:hidden;padding:4px;">
+                    ${state.versionsList.map(v => `
+                      <button class="bible-version-option" data-version="${v.id}" style="width:100%;text-align:left;padding:10px 14px;border:none;background:${state.version === v.id ? '#f4f4f5' : 'transparent'};color:${state.version === v.id ? '#000000' : '#52525b'};font-weight:${state.version === v.id ? '700' : '500'};font-size:0.88rem;cursor:pointer;border-radius:6px;display:flex;flex-direction:column;gap:2px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                          <span style="font-weight:700;">${v.name}</span>
+                          ${state.version === v.id ? '<span style="color:#3b82f6;font-size:11px;font-weight:700;">ATIVO</span>' : ''}
+                        </div>
+                        <span style="font-size:0.75rem;color:#71717a;">${v.fullName}</span>
+                      </button>
+                    `).join('')}
+                  </div>
+                ` : ''}
+              </div>
             </div>
           </div>
 
-          <!-- 3. VIEW: LIVROS -->
+          <!-- VIEW: LIVROS -->
           ${state.currentView === 'books' ? `
             <div style="padding:16px 20px;">
               <!-- Input Busca -->
@@ -161,7 +171,7 @@
                 ${state.loadingBooks ? '<div style="text-align:center;padding:40px 20px;color:#64748b;">Carregando livros da Bíblia...</div>' : ''}
                 ${!state.loadingBooks && filteredBooks.length === 0 ? `<div style="text-align:center;padding:40px 20px;color:#64748b;">Nenhum livro encontrado para "${state.searchQuery}".</div>` : ''}
                 ${filteredBooks.map(b => `
-                  <div class="bible-book-item" data-book-id="${b.id}" style="display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;border-radius:6px;">
+                  <div class="bible-book-item" data-book-id="${b.id}" style="display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;border-radius:6px;transition:background-color 0.15s;">
                     <span style="font-size:1.02rem;font-weight:600;color:#0f172a;">${b.name}</span>
                     <div style="display:flex;align-items:center;gap:8px;color:#94a3b8;font-size:0.92rem;font-weight:500;">
                       <span>${b.chaptersCount}</span>
@@ -173,7 +183,7 @@
             </div>
           ` : ''}
 
-          <!-- 4. VIEW: CAPÍTULOS -->
+          <!-- VIEW: CAPÍTULOS -->
           ${state.currentView === 'chapters' && state.selectedBook ? `
             <div style="padding:20px;">
               <div style="font-size:0.9rem;color:#64748b;margin-bottom:16px;font-weight:500;">
@@ -182,7 +192,7 @@
 
               <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:10px;max-height:420px;overflow-y:auto;padding-right:4px;">
                 ${Array.from({ length: state.selectedBook.chaptersCount }, (_, i) => i + 1).map(chapNum => `
-                  <button class="bible-chapter-btn" data-chapter="${chapNum}" style="height:52px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;color:#0f172a;font-size:1.05rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                  <button class="bible-chapter-btn" data-chapter="${chapNum}" style="height:52px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;color:#0f172a;font-size:1.05rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;">
                     ${chapNum}
                   </button>
                 `).join('')}
@@ -190,7 +200,7 @@
             </div>
           ` : ''}
 
-          <!-- 5. VIEW: VERSÍCULOS -->
+          <!-- VIEW: VERSÍCULOS -->
           ${state.currentView === 'verses' && state.selectedBook ? `
             <div style="padding:20px;">
               <!-- Barra de Controles -->
@@ -281,20 +291,25 @@
       if (searchInput) {
         searchInput.oninput = (e) => {
           state.searchQuery = e.target.value;
-          // Atualiza apenas a lista de livros para não perder o foco do input
           const booksContainer = container.querySelector('.bible-book-item')?.parentElement;
           if (booksContainer) {
             const filtered = getFilteredBooks();
-            booksContainer.innerHTML = filtered.map(b => `
-              <div class="bible-book-item" data-book-id="${b.id}" style="display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;border-radius:6px;">
-                <span style="font-size:1.02rem;font-weight:600;color:#0f172a;">${b.name}</span>
-                <div style="display:flex;align-items:center;gap:8px;color:#94a3b8;font-size:0.92rem;font-weight:500;">
-                  <span>${b.chaptersCount}</span>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            if (filtered.length === 0) {
+              booksContainer.innerHTML = `<div style="text-align:center;padding:40px 20px;color:#64748b;">Nenhum livro encontrado para "${state.searchQuery}".</div>`;
+            } else {
+              booksContainer.innerHTML = filtered.map(b => `
+                <div class="bible-book-item" data-book-id="${b.id}" style="display:flex;align-items:center;justify-content:space-between;padding:14px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;border-radius:6px;transition:background-color 0.15s;">
+                  <span style="font-size:1.02rem;font-weight:600;color:#0f172a;">${b.name}</span>
+                  <div style="display:flex;align-items:center;gap:8px;color:#94a3b8;font-size:0.92rem;font-weight:500;">
+                    <span>${b.chaptersCount}</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+                  </div>
                 </div>
-              </div>
-            `).join('');
+              `).join('');
+            }
             attachBookClicks();
+          } else {
+            render();
           }
         };
       }
@@ -318,6 +333,16 @@
       attachBookClicks();
 
       container.querySelectorAll('.bible-chapter-btn').forEach(el => {
+        el.onmouseenter = () => {
+          el.style.backgroundColor = '#000000';
+          el.style.color = '#ffffff';
+          el.style.borderColor = '#000000';
+        };
+        el.onmouseleave = () => {
+          el.style.backgroundColor = '#f8fafc';
+          el.style.color = '#0f172a';
+          el.style.borderColor = '#e2e8f0';
+        };
         el.onclick = () => {
           state.selectedChapter = parseInt(el.dataset.chapter, 10);
           state.currentView = 'verses';
@@ -362,6 +387,12 @@
       }
 
       container.querySelectorAll('.bible-verse-item').forEach(el => {
+        el.onmouseenter = () => {
+          el.style.backgroundColor = '#f8fafc';
+        };
+        el.onmouseleave = () => {
+          el.style.backgroundColor = 'transparent';
+        };
         el.onclick = () => {
           const num = parseInt(el.dataset.verseNum, 10);
           const txt = decodeURIComponent(el.dataset.verseText || '');
@@ -379,6 +410,12 @@
 
     const attachBookClicks = () => {
       container.querySelectorAll('.bible-book-item').forEach(el => {
+        el.onmouseenter = () => {
+          el.style.backgroundColor = '#f8fafc';
+        };
+        el.onmouseleave = () => {
+          el.style.backgroundColor = 'transparent';
+        };
         el.onclick = () => {
           const bookId = parseInt(el.dataset.bookId, 10);
           const found = state.books.find(b => b.id === bookId);

@@ -147,114 +147,105 @@ export const BibleWidget = ({ initialVersion = 'nvi', onNavigateHome }) => {
       border: '1px solid #e4e4e7',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
     }}>
-      {/* 1. TOPO PRETO - HEADER DA BÍBLIA */}
+      {/* HEADER PRINCIPAL COM NAVEGAÇÃO E SELETOR DE VERSÃO */}
       <div style={{
-        backgroundColor: '#000000',
-        color: '#ffffff',
-        padding: '14px 20px',
+        padding: '16px 20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        userSelect: 'none'
-      }}>
-        {currentView !== 'books' ? (
-          <button
-            onClick={handleBack}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#ffffff',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '6px',
-              borderRadius: '6px',
-              transition: 'background 0.2s'
-            }}
-            title="Voltar"
-          >
-            <ArrowLeft size={22} />
-          </button>
-        ) : (
-          <div style={{ width: '34px' }} />
-        )}
-
-        <h2 style={{
-          fontSize: '1.25rem',
-          fontWeight: 800,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          margin: 0,
-          color: '#ffffff',
-          textAlign: 'center'
-        }}>
-          BÍBLIA
-        </h2>
-
-        <button
-          onClick={handleGoHome}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#ffffff',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '6px',
-            borderRadius: '6px',
-            transition: 'background 0.2s'
-          }}
-          title="Início dos Livros"
-        >
-          <Home size={22} />
-        </button>
-      </div>
-
-      {/* 2. SUBHEADER: TÍTULO DA ETAPA & SELETOR DE VERSÃO */}
-      <div style={{
-        padding: '16px 20px 10px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '1px solid #f4f4f5',
+        borderBottom: '1px solid #f1f5f9',
+        backgroundColor: '#ffffff',
         position: 'relative'
       }}>
-        <h3 style={{
-          fontSize: '1.35rem',
-          fontWeight: 700,
-          color: '#18181b',
-          margin: 0
-        }}>
-          {currentView === 'books' && 'Livros'}
-          {currentView === 'chapters' && selectedBook?.name}
-          {currentView === 'verses' && `${selectedBook?.name} ${selectedChapter}`}
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {currentView !== 'books' && (
+            <button
+              onClick={handleBack}
+              style={{
+                backgroundColor: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                color: '#0f172a',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '34px',
+                height: '34px',
+                borderRadius: '8px',
+                transition: 'all 0.2s'
+              }}
+              title="Voltar"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
 
-        {/* Botão de Versão (ex: VERSÃO NVI) */}
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setShowVersionDropdown(!showVersionDropdown)}
-            style={{
-              backgroundColor: '#ffffff',
-              border: '1.5px solid #27272a',
-              borderRadius: '6px',
-              padding: '5px 12px',
-              fontSize: '0.8rem',
+          <div>
+            <h3 style={{
+              fontSize: '1.3rem',
               fontWeight: 700,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              color: '#18181b',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              transition: 'all 0.2s'
-            }}
-          >
-            <span>VERSÃO {version.toUpperCase()}</span>
-          </button>
+              color: '#0f172a',
+              margin: 0,
+              lineHeight: 1.2
+            }}>
+              {currentView === 'books' && 'Livros'}
+              {currentView === 'chapters' && selectedBook?.name}
+              {currentView === 'verses' && `${selectedBook?.name} ${selectedChapter}`}
+            </h3>
+            {currentView === 'chapters' && selectedBook?.testamentName && (
+              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>
+                {selectedBook.testamentName}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+          {currentView !== 'books' && (
+            <button
+              onClick={handleGoHome}
+              style={{
+                backgroundColor: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                color: '#0f172a',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '34px',
+                height: '34px',
+                borderRadius: '8px',
+                transition: 'all 0.2s'
+              }}
+              title="Início dos Livros"
+            >
+              <Home size={18} />
+            </button>
+          )}
+
+          {/* Botão de Versão (ex: VERSÃO NVI) */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowVersionDropdown(!showVersionDropdown)}
+              style={{
+                backgroundColor: '#ffffff',
+                border: '1.5px solid #27272a',
+                borderRadius: '6px',
+                padding: '6px 12px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+                color: '#18181b',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s'
+              }}
+            >
+              <span>VERSÃO {version.toUpperCase()}</span>
+            </button>
 
           {/* Dropdown de Versões */}
           {showVersionDropdown && (

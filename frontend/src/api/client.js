@@ -1,8 +1,18 @@
 /**
  * Cliente HTTP para a API REST do Church
  */
-const API_ORIGIN = import.meta.env.VITE_API_URL || '';
-export const BASE_URL = API_ORIGIN ? (API_ORIGIN.endsWith('/') ? `${API_ORIGIN.slice(0, -1)}/api` : `${API_ORIGIN}/api`) : '/api';
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    return envUrl.endsWith('/') ? `${envUrl.slice(0, -1)}/api` : `${envUrl}/api`;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname.includes('igrejaelcana.com.br')) {
+    return 'https://api.igrejaelcana.com.br/api';
+  }
+  return '/api';
+};
+
+export const BASE_URL = getApiBaseUrl();
 
 if (typeof window !== 'undefined') {
   window.__CHURCH_API_URL__ = BASE_URL;

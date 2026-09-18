@@ -168,50 +168,91 @@ export const HomeEditor = () => {
     if (!html) return '';
     const trimmed = html.trim();
 
-    // Protege comentários HTML
-    const comments = [];
-    const protectedHtml = trimmed.replace(/<!--[\s\S]*?-->/g, (match) => {
-      const id = `___HTML_COMMENT_${comments.length}___`;
-      comments.push(match);
-      return id;
-    });
+    // Regex para dividir tags HTML, comentários (<!-- ... -->) e DOCTYPE
+    const regex = /(<!--[\s\S]*?-->|<\/?[a-zA-Z0-9-]+(?:\s+[^>]*)?>|<!DOCTYPE[^>]*>)/gi;
 
-    const tab = '  ';
-    let result = '';
-    let indent = 0;
+    const rawTokens = [];
+    let lastIdx = 0;
+    let match;
 
-    const clean = protectedHtml.replace(/>\s*</g, '><').trim();
-    const tokens = clean.split(/(<\/?[^>]+>)/g).filter(Boolean);
+    while ((match = regex.exec(trimmed)) !== null) {
+      if (match.index > lastIdx) {
+        const text = trimmed.slice(lastIdx, match.index);
+        rawTokens.push({ type: 'text', content: text });
+      }
+      const val = match[0];
+      if (val.startsWith('<!--')) {
+        rawTokens.push({ type: 'comment', content: val });
+      } else if (val.startsWith('</')) {
+        const tagNameMatch = val.match(/<\/([a-zA-Z0-9-]+)/);
+        rawTokens.push({ type: 'closingTag', content: val, tag: tagNameMatch ? tagNameMatch[1].toLowerCase() : '' });
+      } else if (val.startsWith('<') && !val.startsWith('<!')) {
+        const tagNameMatch = val.match(/<([a-zA-Z0-9-]+)/);
+        const isSelfClosing = val.endsWith('/>');
+        rawTokens.push({
+          type: 'openingTag',
+          content: val,
+          tag: tagNameMatch ? tagNameMatch[1].toLowerCase() : '',
+          isSelfClosing
+        });
+      } else {
+        rawTokens.push({ type: 'other', content: val });
+      }
+      lastIdx = regex.lastIndex;
+    }
+    if (lastIdx < trimmed.length) {
+      const text = trimmed.slice(lastIdx);
+      rawTokens.push({ type: 'text', content: text });
+    }
 
     const voidTags = ['img', 'br', 'hr', 'input', 'link', 'meta', 'source', 'area', 'col', 'embed', 'param', 'track', 'wbr'];
 
-    tokens.forEach((token) => {
-      token = token.trim();
-      if (!token) return;
+    const tab = '  ';
+    let indent = 0;
+    const lines = [];
 
-      if (token.startsWith('</')) {
+    for (let i = 0; i < rawTokens.length; i++) {
+      const token = rawTokens[i];
+
+      if (token.type === 'comment') {
+        const prevToken = i > 0 ? rawTokens[i - 1] : null;
+        const prevPrevToken = i > 1 ? rawTokens[i - 2] : null;
+
+        let attachedToPrev = false;
+        let space = '';
+
+        if (prevToken && (prevToken.type === 'closingTag' || prevToken.type === 'openingTag' || prevToken.type === 'comment')) {
+          attachedToPrev = true;
+        } else if (prevToken && prevToken.type === 'text' && !prevToken.content.includes('\n') && prevPrevToken && (prevPrevToken.type === 'closingTag' || prevPrevToken.type === 'openingTag' || prevPrevToken.type === 'comment')) {
+          attachedToPrev = true;
+          space = prevToken.content.includes(' ') ? ' ' : '';
+        }
+
+        if (attachedToPrev && lines.length > 0) {
+          lines[lines.length - 1] = lines[lines.length - 1] + space + token.content;
+        } else {
+          lines.push(tab.repeat(indent) + token.content);
+        }
+      } else if (token.type === 'closingTag') {
         indent = Math.max(0, indent - 1);
-        result += tab.repeat(indent) + token + '\n';
-      } else if (token.startsWith('<') && !token.startsWith('<!')) {
-        const tagNameMatch = token.match(/<([a-zA-Z0-9-]+)/);
-        const tagName = tagNameMatch ? tagNameMatch[1].toLowerCase() : '';
-        const isVoid = voidTags.includes(tagName) || token.endsWith('/>');
-
-        result += tab.repeat(indent) + token + '\n';
+        lines.push(tab.repeat(indent) + token.content);
+      } else if (token.type === 'openingTag') {
+        const isVoid = voidTags.includes(token.tag) || token.isSelfClosing;
+        lines.push(tab.repeat(indent) + token.content);
         if (!isVoid) {
           indent++;
         }
-      } else {
-        result += tab.repeat(indent) + token + '\n';
+      } else if (token.type === 'text') {
+        const cleanText = token.content.trim();
+        if (cleanText) {
+          lines.push(tab.repeat(indent) + cleanText);
+        }
+      } else if (token.type === 'other') {
+        lines.push(tab.repeat(indent) + token.content);
       }
-    });
+    }
 
-    let finalHtml = result.trim();
-    comments.forEach((comment, idx) => {
-      finalHtml = finalHtml.replace(`___HTML_COMMENT_${idx}___`, comment);
-    });
-
-    return finalHtml;
+    return lines.join('\n');
   };
 
   // Formata o código CSS com regras e blocos aninhados profissionalmente e preservação total de comentários
@@ -219,27 +260,33 @@ export const HomeEditor = () => {
     if (!css) return '';
     const trimmed = css.trim();
 
-    // 1. Protege comentários CSS
-    const comments = [];
-    const protectedCss = trimmed.replace(/\/\*[\s\S]*?\*\//g, (match) => {
-      const id = `___CSS_COMMENT_${comments.length}___`;
-      comments.push(match);
-      return id;
-    });
-
-    // 2. Protege URLs e dados base64 (evita quebrar ponto-e-vírgula dentro de url(...))
+    // 1. Protege URLs e dados base64 (evita quebrar ponto-e-vírgula dentro de url(...))
     const urls = [];
-    const protectedUrls = protectedCss.replace(/url\([^)]+\)/gi, (match) => {
+    const protectedUrls = trimmed.replace(/url\([^)]+\)/gi, (match) => {
       const id = `___CSS_URL_${urls.length}___`;
       urls.push(match);
       return id;
     });
 
-    // 3. Normaliza quebras de linha e estrutura chaves e ponto-e-vírgula
-    let clean = protectedUrls.replace(/\r\n/g, '\n').trim();
-    clean = clean.replace(/\s*\{\s*/g, ' {\n');
-    clean = clean.replace(/\s*;\s*/g, ';\n');
-    clean = clean.replace(/\s*\}\s*/g, '\n}\n\n');
+    // 2. Protege comentários CSS
+    const comments = [];
+    const protectedCss = protectedUrls.replace(/\/\*[\s\S]*?\*\//g, (match) => {
+      const id = `___CSS_COMMENT_${comments.length}___`;
+      comments.push(match);
+      return id;
+    });
+
+    // 3. Normaliza quebras de linha e estrutura chaves e ponto-e-vírgula preservando comentários inline
+    let clean = protectedCss.replace(/\r\n/g, '\n').trim();
+
+    clean = clean.replace(/;(?!\s*___CSS_COMMENT_)/g, ';\n');
+    clean = clean.replace(/;(?:[ \t]*)(___CSS_COMMENT_\d+___)/g, '; $1\n');
+
+    clean = clean.replace(/\s*\{\s*(?!___CSS_COMMENT_)/g, ' {\n');
+    clean = clean.replace(/\s*\{(?:[ \t]*)(___CSS_COMMENT_\d+___)/g, ' { $1\n');
+
+    clean = clean.replace(/\s*\}\s*(?!___CSS_COMMENT_)/g, '\n}\n\n');
+    clean = clean.replace(/\s*\}(?:[ \t]*)(___CSS_COMMENT_\d+___)/g, '\n} $1\n\n');
 
     const lines = clean.split('\n');
     let indent = 0;
@@ -250,10 +297,10 @@ export const HomeEditor = () => {
       const line = rawLine.trim();
       if (!line) continue;
 
-      if (line === '}') {
+      if (line === '}' || line.startsWith('}')) {
         indent = Math.max(0, indent - 1);
         formatted += tab.repeat(indent) + line + '\n\n';
-      } else if (line.endsWith('{')) {
+      } else if (line.endsWith('{') || line.includes('{ ___CSS_COMMENT_')) {
         formatted += tab.repeat(indent) + line + '\n';
         indent++;
       } else {
@@ -275,9 +322,9 @@ export const HomeEditor = () => {
       finalCss = finalCss.replace(`___CSS_URL_${idx}___`, url);
     });
 
-    // Restaura Comentários
+    // Restaura Comentários com função de substituição segura contra símbolos de cifrão ($)
     comments.forEach((comment, idx) => {
-      finalCss = finalCss.replace(`___CSS_COMMENT_${idx}___`, comment);
+      finalCss = finalCss.replace(`___CSS_COMMENT_${idx}___`, () => comment);
     });
 
     return finalCss;
@@ -1532,7 +1579,9 @@ export const HomeEditor = () => {
 
     editor.on('style:update style:custom', () => {
       const page = currentPageRef.current;
-      if (customCodeByPageRef.current[page]) {
+      // Preserva o CSS com comentários já existente; se não houver, inicializa
+      if (!customCodeByPageRef.current[page] || !customCodeByPageRef.current[page].css) {
+        if (!customCodeByPageRef.current[page]) customCodeByPageRef.current[page] = {};
         customCodeByPageRef.current[page].css = formatCss(editor.getCss() || '');
       }
     });
@@ -1643,9 +1692,12 @@ export const HomeEditor = () => {
     // Salva automaticamente a página atual antes de alternar sincronizando canvas e estilos formatados
     try {
       const gjsHtml = editorRef.current.getHtml() || '';
-      const gjsCss = editorRef.current.getCss() || '';
       const formattedHtml = formatHtml(gjsHtml);
-      const formattedCss = formatCss(gjsCss);
+
+      const savedCss = customCodeByPageRef.current[currentPage]?.css;
+      const formattedCss = (savedCss !== undefined && savedCss !== null && savedCss.trim() !== '')
+        ? formatCss(savedCss)
+        : formatCss(editorRef.current.getCss() || '');
 
       customCodeByPageRef.current[currentPage] = {
         html: formattedHtml,
@@ -1715,10 +1767,12 @@ export const HomeEditor = () => {
 
     try {
       const gjsHtml = editorRef.current.getHtml() || '';
-      const gjsCss = editorRef.current.getCss() || '';
-
       const formattedHtml = formatHtml(gjsHtml);
-      const formattedCss = formatCss(gjsCss);
+
+      const savedCss = customCodeByPageRef.current[currentPage]?.css;
+      const formattedCss = (savedCss !== undefined && savedCss !== null && savedCss.trim() !== '')
+        ? formatCss(savedCss)
+        : formatCss(editorRef.current.getCss() || '');
 
       // Sincroniza a memória local com as alterações visuais e estilos formatados e aninhados
       customCodeByPageRef.current[currentPage] = {

@@ -1127,6 +1127,9 @@ export const HomeEditor = () => {
       canvas: {
         styles: [
           'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap'
+        ],
+        scripts: [
+          '/bible-widget.js'
         ]
       }
     });
@@ -1397,7 +1400,27 @@ export const HomeEditor = () => {
       `
     });
 
-    // 7. Rodapé
+    // 7. Bíblia Sagrada Interativa (NVI, ACF, AA)
+    blockManager.add('church-bible', {
+      label: `
+        <div style="text-align: center;">
+          <svg style="width:28px;height:28px;margin:0 auto 4px;color:#3b82f6;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 1 3-3h7z"/>
+            <path d="M6 8h2M6 12h2M16 8h2M16 12h2"/>
+          </svg>
+          <div style="font-size:11px;font-weight:600;">Bíblia Sagrada</div>
+        </div>
+      `,
+      category: 'Mídia & Dinâmico',
+      content: `
+        <div class="church-bible-container" style="padding: 24px 12px; width: 100%; display: flex; justify-content: center; background-color: #f8fafc; border-radius: 12px; margin: 16px 0;">
+          <div id="church-bible-app" class="church-bible-widget" style="width: 100%; max-width: 680px; min-height: 480px; margin: 0 auto;"></div>
+        </div>
+      `
+    });
+
+    // 8. Rodapé
     blockManager.add('church-footer', {
       label: `
         <div style="text-align: center;">

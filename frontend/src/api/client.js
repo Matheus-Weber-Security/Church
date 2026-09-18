@@ -4,6 +4,10 @@
 const API_ORIGIN = import.meta.env.VITE_API_URL || '';
 export const BASE_URL = API_ORIGIN ? (API_ORIGIN.endsWith('/') ? `${API_ORIGIN.slice(0, -1)}/api` : `${API_ORIGIN}/api`) : '/api';
 
+if (typeof window !== 'undefined') {
+  window.__CHURCH_API_URL__ = BASE_URL;
+}
+
 export const getAuthToken = () => {
   return localStorage.getItem('church_token');
 };
@@ -88,4 +92,10 @@ export const api = {
 
   // Assistente de IA (Godolfredo)
   sendAiMessage: (message, history = []) => request('/ai/chat', { method: 'POST', body: { message, history } }),
+
+  // Bíblia Sagrada Interativa (NVI, ACF, AA)
+  getBibleVersions: () => request('/bible/versions'),
+  getBibleBooks: () => request('/bible/books'),
+  getBibleChapter: (version = 'nvi', bookAbbr = 'gn', chapter = 1) => request(`/bible/${version}/${bookAbbr}/${chapter}`),
+  searchBible: (query, version = 'nvi') => request(`/bible/search?q=${encodeURIComponent(query)}&version=${version}`),
 };

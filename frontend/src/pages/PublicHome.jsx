@@ -30,6 +30,20 @@ export const PublicHome = ({ slug = 'home', onNavigate }) => {
     fetchPage();
   }, [slug]);
 
+  // Inicializa widgets dinâmicos (ex: Bíblia Sagrada) presentes na página
+  useEffect(() => {
+    if (!loading && pageData.html) {
+      const timer = setTimeout(() => {
+        if (window.initChurchBible) {
+          document.querySelectorAll('#church-bible-app, .church-bible-widget').forEach((el) => {
+            window.initChurchBible(el);
+          });
+        }
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, pageData.html]);
+
   // Se a página for a inicial 'home' e não tiver conteúdo salvo:
   // Preserva: "A página principal 'localhost:porta/' deve estar em branco inicialmente."
   const isBlank = slug === 'home' && (!pageData.html || !pageData.html.trim());
